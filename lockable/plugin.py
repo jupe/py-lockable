@@ -70,8 +70,8 @@ def _try_lock(candidate, lock_folder):
             except OSError as error:
                 print(error, file=sys.stderr)
         return candidate, release
-    except Timeout:
-        raise AssertionError('not success')
+    except Timeout as error:
+        raise AssertionError('not success') from error
 
 
 @contextmanager
@@ -93,8 +93,8 @@ def _lock_some(candidates, timeout_s, lock_folder, retry_interval):
         print(f'resource {resource["id"]} allocated ({json.dumps(resource)})')
         yield resource
         release()
-    except FunctionTimedOut:
-        raise TimeoutError(f'Allocation timeout ({timeout_s}s)')
+    except FunctionTimedOut as error:
+        raise TimeoutError(f'Allocation timeout ({timeout_s}s)') from error
 
 
 @contextmanager
