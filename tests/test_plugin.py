@@ -9,7 +9,7 @@ from nose.tools import nottest
 import multiprocessing as mp
 from tempfile import mktemp
 from contextlib import contextmanager
-from lockable.plugin import read_resources_list, parse_requirements, lock, validate_json
+from lockable.lockable import read_resources_list, parse_requirements, lock, validate_json
 
 
 HOSTNAME = socket.gethostname()
