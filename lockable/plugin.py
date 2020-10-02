@@ -20,6 +20,7 @@ def read_resources_list(filename):
 
 
 def validate_json(data):
+    """ Validate json data """
     counts = count_by(data, lambda obj: obj.get('id'))
     no_ids = filter_(counts.keys(), lambda key: key is None)
     if no_ids:
@@ -37,10 +38,10 @@ def parse_requirements(requirements_str):
         return dict()
     try:
         return json.loads(requirements_str)
-    except json.decoder.JSONDecodeError:
+    except json.decoder.JSONDecodeError as jsonerror:
         parts = requirements_str.split('&')
         if len(parts) == 0:
-            raise ValueError('no requirements given')
+            raise ValueError('no requirements given') from jsonerror
         requirements = dict()
         for part in parts:
             try:
@@ -97,7 +98,11 @@ def _lock_some(candidates, timeout_s, lock_folder, retry_interval):
 
 
 @contextmanager
-def lock(requirements: dict, resource_list: list, timeout_s: int, lock_folder: str, retry_interval=1):
+def lock(requirements: dict,
+         resource_list: list,
+         timeout_s: int,
+         lock_folder: str,
+         retry_interval=1):
     """ Lock resource context """
     local_resources = filter_(resource_list, requirements)
     random.shuffle(local_resources)
