@@ -1,0 +1,110 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2.1
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-37:
+          filters:
+            tags:
+              only: /.*/
+      - test-38:
+          filters:
+            tags:
+              only: /.*/
+      - test-39:
+          filters:
+            tags:
+              only: /.*/
+      - deploy:
+          requires:
+            - test-39
+            - test-38
+            - test-37
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
+
+commands:
+  setup:
+    steps:
+      - checkout
+      # Download and cache dependencies
+      - restore_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "setup.py" }}
+      - run:
+          name: install dependencies
+          command: |
+            python --version
+            virtualenv venv
+            . venv/bin/activate;
+            pip install -e .;
+            pip install -e .[dev]
+            pip install -e .[optional]
+      - save_cache:
+          paths:
+            - ./venv
+          key: deps1-{{ .Branch }}-{{ checksum "setup.py" }}
+
+jobs:
+  test-37: &test-template
+    docker:
+      - image: circleci/python:3.7
+    working_directory: ~/lockable
+    steps:
+      - setup
+      # run tests!
+      - run:
+          name: unit tests
+          command: |
+            mkdir junit || true
+            . venv/bin/activate;
+            nosetests --with-xunit --with-coverage --cover-package=lockable --cover-html --cover-html-dir=htmlcov --cover-xml-file=coverage.xml --xunit-file=junit/results.xml
+            coveralls || true
+      - run:
+          name: pylint
+          command: |
+            . venv/bin/activate;
+            pylint lockable
+      - store_artifacts:
+          path: htmlcov
+          destination: htmlcov
+      - store_test_results:
+          path: junit
+      - store_artifacts:
+          path: junit
+          destination: juni
+
+  test-38:
+    <<: *test-template
+    docker:
+    - image: circleci/python:3.8
+
+  test-39:
+    <<: *test-template
+    docker:
+    - image: circleci/python:3.9-rc-buster
+
+  deploy:
+    <<: *test-template
+    steps:
+      - setup
+      - run:
+          name: create packages
+          command: |
+            . venv/bin/activate;
+            python setup.py sdist
+            python setup.py bdist_wheel
+      - run:
+          name: upload to pypi
+          command: |
+            . venv/bin/activate;
+            pip install twine;
+            export PATH=$HOME/.local/bin:$PATH;
+            twine upload dist/*
