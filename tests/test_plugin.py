@@ -9,7 +9,7 @@ from nose.tools import nottest
 import multiprocessing as mp
 from tempfile import mktemp
 from contextlib import contextmanager
-from lockable.plugin import read_resources_list, parse_requirements, lock, validate_json
+from lockable.lockable import read_resources_list, parse_requirements, lock, validate_json, ResourceNotFound
 
 
 HOSTNAME = socket.gethostname()
@@ -50,6 +50,7 @@ class TestLockable(unittest.TestCase):
         self.assertEqual(parse_requirements("a=b&b=2&"), dict(a='b', b="2"))
         self.assertEqual(parse_requirements('{"a":"c"}'), dict(a='c'))
         self.assertEqual(parse_requirements('{"a":"c", "d":2}'), dict(a='c', d=2))
+        self.assertEqual(parse_requirements('a=true&d=False'), dict(a=True, d=False))
 
     def test_lock_success(self):
         requirements = dict(id=1)
@@ -66,18 +67,18 @@ class TestLockable(unittest.TestCase):
             with lock(requirements=requirements, resource_list=resource_list,
                       lock_folder='.', timeout_s=0.1):
                 raise AssertionError('did not raise TimeoutError')
-        except TimeoutError:
+        except ResourceNotFound:
             pass
         self.assertFalse(os.path.exists('1.lock'))
 
     def test_not_online(self):
-        requirements = dict(id=1)
+        requirements = dict(id='1', online=True)
         resource_list = [dict(hostame=HOSTNAME, id='1', online=False)]
         try:
             with lock(requirements=requirements, resource_list=resource_list,
                       lock_folder='.', timeout_s=0.1):
-                raise AssertionError('did not raise TimeoutError')
-        except TimeoutError:
+                raise AssertionError('did not raise ResourceNotFound')
+        except ResourceNotFound:
             pass
         self.assertFalse(os.path.exists('1.lock'))
 

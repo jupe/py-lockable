@@ -10,6 +10,10 @@ from func_timeout import func_timeout, FunctionTimedOut
 from filelock import Timeout, FileLock
 
 
+class ResourceNotFound(Exception):
+    """ Exception raised when resource not found """
+
+
 def read_resources_list(filename):
     """ Read resources json file """
     with open(filename) as json_file:
@@ -49,6 +53,10 @@ def parse_requirements(requirements_str):
             except ValueError:
                 continue
             key, value = part.split('=')
+            if value.lower() == "true":
+                value = True
+            elif value.lower() == "false":
+                value = False
             requirements[key] = value
         return requirements
 
@@ -58,13 +66,14 @@ def _try_lock(candidate, lock_folder):
     resource_id = candidate.get("id")
     try:
         lock_file = os.path.join(lock_folder, f"{resource_id}.lock")
-        lockable = FileLock(lock_file)
-        lockable.acquire(timeout=0)
+        _lockable = FileLock(lock_file)
+        _lockable.acquire(timeout=0)
         print(f'Allocated resource: {resource_id}')
 
         def release():
+            nonlocal _lockable
             print(f'Release resource: {resource_id}')
-            lockable.release()
+            _lockable.release()
             try:
                 os.remove(lock_file)
             except OSError as error:
@@ -106,11 +115,13 @@ def lock(requirements: dict,
     """ Lock resource context """
     local_resources = filter_(resource_list, requirements)
     random.shuffle(local_resources)
+    if not local_resources:
+        raise ResourceNotFound("Suitable resource not available")
     with _lock_some(local_resources, timeout_s, lock_folder, retry_interval) as resource:
         yield resource
 
 
-def _get_requirements(requirements, hostname):
+def get_requirements(requirements, hostname):
     """ Generate requirements"""
     print(f'hostname: {hostname}')
     return merge(dict(hostname=hostname, online=True), requirements)
