@@ -65,7 +65,7 @@ class Lockable:
                 data = json.load(json_file)
                 assert isinstance(data, list), 'data is not an list'
             except (json.decoder.JSONDecodeError, AssertionError) as error:
-                raise ValueError(f'invalid resources json file: {error}')
+                raise ValueError(f'invalid resources json file: {error}') from error
             Lockable._validate_json(data)
         return data
 
@@ -93,14 +93,14 @@ class Lockable:
             return json.loads(requirements_str)
         except json.decoder.JSONDecodeError as error:
             if error.colno > 1:
-                raise ValueError(str(error))
+                raise ValueError(str(error)) from error
         parts = requirements_str.split('&')
         requirements = dict()
         for part in parts:
             try:
                 part.index("=")
-            except ValueError:
-                raise ValueError(f'Missing value ({part})')
+            except ValueError as error:
+                raise ValueError(f'Missing value ({part})') from error
             key, value = part.split('=')
             if not value:
                 raise ValueError(f'Missing value ({part})')
@@ -132,8 +132,8 @@ class Lockable:
                               resource_info=candidate,
                               release=release,
                               pid_file=pid_file)
-        except PidFileError:
-            raise AssertionError('no success')
+        except PidFileError as error:
+            raise AssertionError('no success') from error
 
     def _lock_some(self, requirements, candidates, timeout_s, retry_interval):
         """ Contextmanager that lock some candidate that is free and release it finally """
