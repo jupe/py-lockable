@@ -1,2 +1,2 @@
 """ Lockable module """
-from lockable.Lockable import Lockable, ResourceNotFound, Reservation
+from lockable.lockable import Lockable, ResourceNotFound, Allocation
