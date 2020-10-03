@@ -53,7 +53,7 @@ setup(
     # Specify which Python versions you support.
     python_requires='>=3.7, <4',
     install_requires=[
-        'func_timeout',
+        'pid',
         'filelock',
         'pydash'
     ],
