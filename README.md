@@ -6,6 +6,12 @@ Originally designed for following projects:
 * [pytest-lockable](https://github.com/jupe/pytest-lockable)
 * [robot-lockable](https://github.com/jupe/robot-lockable)
 
+Resource is released in following cases:
+* process ends
+* when context ends when `lockable.auto_lock(..)` is used
+* allocation.unlock() is called
+* lockable.unlock(<resource>) is called
+
 # API's
 
 
