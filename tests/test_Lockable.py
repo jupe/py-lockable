@@ -20,6 +20,12 @@ class LockableTests(TestCase):
                 fp.write('[]')
             Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
 
+    def test_lock_require_resources_json_loaded(self):
+        lockable = Lockable()
+        with self.assertRaises(AssertionError) as error:
+            lockable.lock({})
+        self.assertEqual(str(error.exception), 'resources list is not loaded')
+
     def test_constructor_file_not_found(self):
         with TemporaryDirectory() as tmpdirname:
             list_file = os.path.join(tmpdirname, 'test.json')

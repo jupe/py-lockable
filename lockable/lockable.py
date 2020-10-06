@@ -47,14 +47,26 @@ class Lockable:
     Base class for Lockable. It handle low-level functionality.
     """
     def __init__(self, hostname=socket.gethostname(),
-                 resource_list_file="resources.json",
+                 resource_list_file=None,
                  lock_folder=tempfile.gettempdir()):
         self._resources = dict()
         self.logger = logging.getLogger('lockable.Lockable')
         self.logger.debug('Initialized lockable')
         self._hostname = hostname
-        self._resource_list = Lockable._read_resources_list(resource_list_file)
         self._lock_folder = lock_folder
+        self._resource_list = None
+        if resource_list_file:
+            self.load_resources_list(resource_list_file)
+        else:
+            self.logger.warning('resource_list_file is not configured')
+
+    def load_resources_list(self, filename: str):
+        """ Load resources list """
+        self._resource_list = self._read_resources_list(filename)
+        self.logger.debug('Resources: ')
+        for resource in self._resource_list:
+            self.logger.debug(json.dumps(resource))
+        self.logger.warning('Use resources from %s file', filename)
 
     @staticmethod
     def _read_resources_list(filename):
@@ -181,6 +193,7 @@ class Lockable:
         :param timeout_s: timeout while trying to lock
         :return:
         """
+        assert isinstance(self._resource_list, list), 'resources list is not loaded'
         requirements = self.parse_requirements(requirements)
         predicate = self._get_requirements(requirements, self._hostname)
         self.logger.debug("Use lock folder: %s", self._lock_folder)
