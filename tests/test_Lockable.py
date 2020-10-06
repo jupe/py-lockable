@@ -12,10 +12,7 @@ from lockable.lockable import Lockable, ResourceNotFound, Allocation
 def create_lockable(data=[{"id": 1, "hostname": "myhost", "online": True}], lock_folder=None):
     with TemporaryDirectory() as tmpdirname:
         lock_folder = lock_folder or tmpdirname
-        list_file = os.path.join(tmpdirname, 'test.json')
-        with open(list_file, 'w') as fp:
-            fp.write(json.dumps(data))
-        yield Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=lock_folder)
+        yield Lockable(hostname='myhost', resource_list_file=data, lock_folder=lock_folder)
 
 
 class LockableTests(TestCase):
