@@ -6,6 +6,7 @@ import os
 import logging
 import time
 import tempfile
+from datetime import datetime
 from dataclasses import dataclass
 from contextlib import contextmanager
 from uuid import uuid1
@@ -22,14 +23,20 @@ class Allocation:
     """
     requirements: dict
     resource_info: dict
-    release: callable
+    _release: callable
     pid_file: str
+    allocation_time: datetime = datetime.now()
     alloc_id: str = str(uuid1())
 
     @property
     def resource_id(self):
         """ resource id getter """
         return self.resource_info['id']
+
+    def release(self, alloc_id):
+        assert self.alloc_id == alloc_id, 'Allocation id mismatch'
+        self._release()
+        self.alloc_id = None
 
 
 class ResourceNotFound(Exception):
@@ -49,7 +56,7 @@ class Lockable:
     def __init__(self, hostname=socket.gethostname(),
                  resource_list_file=None,
                  lock_folder=tempfile.gettempdir()):
-        self._resources = dict()
+        self._allocations = dict()
         self.logger = logging.getLogger('lockable.Lockable')
         self.logger.debug('Initialized lockable')
         self._hostname = hostname
@@ -138,11 +145,11 @@ class Lockable:
                 nonlocal self, resource_id, _lockable
                 self.logger.info('Release resource: %s', resource_id)
                 _lockable.close()
-                del self._resources[resource_id]
+                del self._allocations[resource_id]
 
             return Allocation(requirements=requirements,
                               resource_info=candidate,
-                              release=release,
+                              _release=release,
                               pid_file=pid_file)
         except PidFileError as error:
             raise AssertionError('no success') from error
@@ -158,8 +165,10 @@ class Lockable:
             for candidate in candidates:
                 try:
                     allocation = self._try_lock(requirements, candidate)
-                    self.logger.debug('resource %s allocated (%s)',
-                                      allocation.resource_id, json.dumps(allocation.resource_info))
+                    self.logger.debug('resource %s allocated (%s), alloc_id: (%s)',
+                                      allocation.resource_id,
+                                      json.dumps(allocation.resource_info),
+                                      allocation.alloc_id)
                     return allocation
                 except AssertionError:
                     pass
@@ -186,12 +195,12 @@ class Lockable:
         MODULE_LOGGER.debug('hostname: %s', hostname)
         return merge(dict(hostname=hostname, online=True), requirements)
 
-    def lock(self, requirements: (str or dict), timeout_s: int = 1000):
+    def lock(self, requirements: (str or dict), timeout_s: int = 1000) -> Allocation:
         """
         Lock resource
         :param requirements: resource requirements
         :param timeout_s: timeout while trying to lock
-        :return:
+        :return: Allocation context
         """
         assert isinstance(self._resource_list, list), 'resources list is not loaded'
         requirements = self.parse_requirements(requirements)
@@ -200,32 +209,32 @@ class Lockable:
         self.logger.debug("Requirements: %s", json.dumps(predicate))
         self.logger.debug("Resource list: %s", json.dumps(self._resource_list))
         reservation = self._lock(predicate, timeout_s)
-        self._resources[reservation.resource_id] = reservation
+        self._allocations[reservation.resource_id] = reservation
         return reservation
 
-    def unlock(self, resource: dict):
+    def unlock(self, allocation: Allocation):
         """
         Method to release resource
-        :param resource: resource object. 'id' property required.
+        :param allocation: Allocation object.
         :return: None
         """
-        assert 'id' in resource, 'missing "id" -key'
-        self.logger.info('Release: %s', resource)
-        resource_id = resource['id']
-        ResourceNotFound.invariant(resource_id in self._resources.keys(), 'resource not locked')
-        reservation = self._resources[resource_id]
-        reservation.release()
+        assert 'id' in allocation.resource_info, 'missing "id" -key'
+        self.logger.info('Release: %s', allocation.resource_id)
+        resource_id = allocation.resource_id
+        ResourceNotFound.invariant(resource_id in self._allocations.keys(), 'resource not locked')
+        reservation = self._allocations[resource_id]
+        reservation.release(allocation.alloc_id)
 
     @contextmanager
-    def auto_lock(self, requirements: (str or dict), timeout_s: int = 0):
+    def auto_lock(self, requirements: (str or dict), timeout_s: int = 0) -> Allocation:
         """
         contextmanaged lock method. Resource is released automatically after context ends.
         :param requirements: requirements
         :param timeout_s: timeout while trying to lock suitable resource
-        :return: return resource info object
+        :return: return Allocation object
         """
         allocator = self.lock(requirements=requirements, timeout_s=timeout_s)
         try:
-            yield allocator.resource_info
+            yield allocator
         finally:
-            allocator.release()
+            allocator.release(allocator.alloc_id)
