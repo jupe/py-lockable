@@ -54,7 +54,6 @@ setup(
     python_requires='>=3.7, <4',
     install_requires=[
         'pid',
-        'filelock',
         'pydash'
     ],
     extras_require={  # Optional
