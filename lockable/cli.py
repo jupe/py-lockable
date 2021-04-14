@@ -49,7 +49,8 @@ def main():
     lockable = Lockable(hostname=args.hostname,
                         resource_list_file=args.resources,
                         lock_folder=args.lock_folder)
-    with lockable.auto_lock(args.requirements, timeout_s=args.timeout) as resource:
+    with lockable.auto_lock(args.requirements, timeout_s=args.timeout) as allocation:
+        resource = allocation.resource_info
         env = os.environ.copy()
         for key in resource.keys():
             env[key.upper()] = str(resource.get(key))

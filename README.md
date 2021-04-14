@@ -10,7 +10,7 @@ Resource is released in following cases:
 * process ends
 * when context ends when `lockable.auto_lock(..)` is used
 * allocation.unlock() is called
-* lockable.unlock(<resource>) is called
+* lockable.unlock(<allocation>) is called
 
 # API's
 
@@ -27,11 +27,11 @@ print(allocation.resource_info)
 print(allocation.resource_id)
 allocation.unlock()
 # or using resource info
-lockable.unlock(allocation.resource_info)
+lockable.unlock(allocation)
 ```
 
 or using context manager which unlock automatically
 ```python
-with lockable.auto_lock(requirements, [timeout_s]) as resource_info:
-    print(resource_info)
+with lockable.auto_lock(requirements, [timeout_s]) as allocation:
+    print(allocation.resource_info)
 ```
