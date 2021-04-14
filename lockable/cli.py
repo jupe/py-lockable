@@ -62,5 +62,5 @@ def main():
     sys.exit(process.returncode)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     main()
