@@ -52,6 +52,11 @@ setup(
     keywords="py.test pytest lockable resource",
     # Specify which Python versions you support.
     python_requires='>=3.7, <4',
+    entry_points={
+        'console_scripts': [
+            'lockable = lockable.cli:main'
+        ]
+    },
     install_requires=[
         'pid',
         'pydash'
