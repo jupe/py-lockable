@@ -151,7 +151,7 @@ class Lockable:
             return Allocation(requirements=requirements,
                               resource_info=candidate,
                               _release=release,
-                              pid_file=pid_file)
+                              pid_file=_lockable.filename)
         except PidFileError as error:
             raise AssertionError('no success') from error
 
