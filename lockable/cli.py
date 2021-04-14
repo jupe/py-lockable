@@ -50,8 +50,8 @@ def main():
                         lock_folder=args.lock_folder)
     with lockable.auto_lock(args.requirements, timeout_s=args.timeout) as resource:
         env = os.environ.copy()
-        for key in resource.resource_info.keys():
-            env[key.upper()] = str(resource.resource_info.get(key))
+        for key in resource.keys():
+            env[key.upper()] = str(resource.get(key))
         print(json.dumps(env))
         command = ' '.join(args.command)
         process = subprocess.Popen(command,
