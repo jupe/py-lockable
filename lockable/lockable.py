@@ -34,6 +34,7 @@ class Allocation:
         return self.resource_info['id']
 
     def release(self, alloc_id):
+        """ Release resource """
         assert self.alloc_id == alloc_id, 'Allocation id mismatch'
         self._release()
         self.alloc_id = None
@@ -102,7 +103,7 @@ class Lockable:
             raise ValueError(f"Invalid json, duplicate ids in {duplicates}")
 
     @staticmethod
-    def parse_requirements(requirements_str: (str or dict)):
+    def parse_requirements(requirements_str: (str or dict)) -> dict:
         """ Parse requirements """
         if not requirements_str:
             return dict()
@@ -208,11 +209,11 @@ class Lockable:
         self.logger.debug("Use lock folder: %s", self._lock_folder)
         self.logger.debug("Requirements: %s", json.dumps(predicate))
         self.logger.debug("Resource list: %s", json.dumps(self._resource_list))
-        reservation = self._lock(predicate, timeout_s)
-        self._allocations[reservation.resource_id] = reservation
-        return reservation
+        allocation = self._lock(predicate, timeout_s)
+        self._allocations[allocation.resource_id] = allocation
+        return allocation
 
-    def unlock(self, allocation: Allocation):
+    def unlock(self, allocation: Allocation) -> None:
         """
         Method to release resource
         :param allocation: Allocation object.
