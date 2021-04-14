@@ -99,8 +99,8 @@ class LockableTests(TestCase):
             list_file = os.path.join(tmpdirname, 'test.json')
             with open(list_file, 'w') as fp:
                 fp.write('[{"id": 1, "hostname": "myhost", "online": true}]')
-            lock_file = os.path.join(tmpdirname, '1.pid')
-            lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
+            lock_file = os.path.join('.', '1.pid')
+            lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder='.')
             object = lockable.lock({}, timeout_s=0)
             self.assertTrue(os.path.exists(lock_file))
             object.release()
