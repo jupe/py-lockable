@@ -127,10 +127,10 @@ class Lockable:
         """ Function that tries to lock given candidate resource """
         resource_id = candidate.get("id")
         try:
-            pid_file = os.path.join(self._lock_folder, f"{resource_id}.pid")
-            self.logger.debug('Trying lock using: %s', pid_file)
+            pid_file = f"{resource_id}.pid"
+            self.logger.debug('Trying lock using: %s', os.path.join(self._lock_folder, pid_file))
 
-            _lockable = PidFile(pidname=pid_file)
+            _lockable = PidFile(pidname=pid_file, piddir=self._lock_folder)
             _lockable.create()
             self.logger.info('Allocated: %s, lockfile: %s', resource_id, pid_file)
 
