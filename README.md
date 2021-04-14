@@ -10,14 +10,44 @@ Originally designed for following projects:
 * [pytest-lockable](https://github.com/jupe/pytest-lockable)
 * [robot-lockable](https://github.com/jupe/robot-lockable)
 
+
+Module provides python API and simple CLI interface.
+
 Resource is released in following cases:
 * process ends
 * when context ends when `lockable.auto_lock(..)` is used
 * allocation.unlock() is called
 * lockable.unlock(<allocation>) is called
 
-# API's
+# CLI interface
 
+```
+% lockable --help
+usage: lockable [-h] [--lock-folder LOCK_FOLDER] [--resources RESOURCES]
+                [--timeout TIMEOUT] [--hostname HOSTNAME]
+                [--requirements REQUIREMENTS]
+                [command [command ...]]
+
+run given command while suitable resource is allocated.
+Usage example: lockable --requirements {"online":true} echo using resource: $ID
+
+positional arguments:
+  command               Command to be execute during device allocation
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --lock-folder LOCK_FOLDER
+                        lock folder
+  --resources RESOURCES
+                        Resources file
+  --timeout TIMEOUT     Timeout for trying allocate suitable resource
+  --hostname HOSTNAME   Hostname
+  --requirements REQUIREMENTS
+                        requirements as json string
+
+```
+
+# API's
 
 Constructor
 ```python
