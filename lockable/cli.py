@@ -1,18 +1,23 @@
 #! python3
+"""
+Lockable CLI interface
+"""
 
 import socket
 import argparse
 import os
 import sys
 import json
-from lockable import Lockable
 import subprocess
+from lockable import Lockable
 
 
 def get_args():
+    """ Get parsed arguments """
     parser = argparse.ArgumentParser(
         description='run given command while suitable resource is allocated.\n'
-                    'Usage example: lockable --requirements {"online":true} echo using resource: $ID',
+                    'Usage example: lockable --requirements {"online":true} '
+                    'echo using resource: $ID',
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--lock-folder',
                         default='.',
@@ -36,10 +41,13 @@ def get_args():
 
 
 def main():
+    """ CLI application """
     args = get_args()
     if not args.command:
         raise KeyError('command is mandatory')
-    lockable = Lockable(hostname=args.hostname, resource_list_file=args.resources, lock_folder=args.lock_folder)
+    lockable = Lockable(hostname=args.hostname,
+                        resource_list_file=args.resources,
+                        lock_folder=args.lock_folder)
     with lockable.auto_lock(args.requirements, timeout_s=args.timeout) as resource:
         env = os.environ.copy()
         for key in resource.resource_info.keys():
