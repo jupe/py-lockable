@@ -56,6 +56,7 @@ class Lockable:
     """
     def __init__(self, hostname=socket.gethostname(),
                  resource_list_file=None,
+                 resource_list=None,
                  lock_folder=tempfile.gettempdir()):
         self._allocations = dict()
         self.logger = logging.getLogger('lockable.Lockable')
@@ -63,12 +64,15 @@ class Lockable:
         self._hostname = hostname
         self._lock_folder = lock_folder
         self._resource_list = None
+        assert not (isinstance(resource_list, list) and
+                    resource_list_file), 'only one of resource_list or ' \
+                                         'resource_list_file is accepted, not both'
         if isinstance(resource_list_file, str):
             self.load_resources_list_file(resource_list_file)
-        elif isinstance(resource_list_file, list):
-            self.load_resources_list(resource_list_file)
+        elif isinstance(resource_list, list):
+            self.load_resources_list(resource_list)
         else:
-            self.logger.warning('resource_list_file is not configured')
+            self.logger.warning('resource_list_file or resource_list is not configured')
 
     def load_resources_list_file(self, filename: str):
         """ Load resources list file"""
