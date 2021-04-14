@@ -130,6 +130,7 @@ class LockableTests(TestCase):
 
             with self.assertRaises(ResourceNotFound):
                 alloc = dataclasses.replace(allocation)
+                alloc.resource_info = alloc.resource_info.copy()
                 alloc.resource_info['id'] = '2'
                 lockable.unlock(alloc)
 
