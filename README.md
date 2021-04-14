@@ -32,6 +32,6 @@ lockable.unlock(allocation.resource_info)
 
 or using context manager which unlock automatically
 ```python
-with lockable.auto_lock(requirements, [timeout_s]) as resource_info:
-    print(resource_info)
+with lockable.auto_lock(requirements, [timeout_s]) as allocation:
+    print(allocation.resource_info)
 ```
