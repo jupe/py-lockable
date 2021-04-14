@@ -44,7 +44,8 @@ def main():
     """ CLI application """
     args = get_args()
     if not args.command:
-        raise KeyError('command is mandatory')
+        print('command is mandatory')
+        sys.exit(1)
     lockable = Lockable(hostname=args.hostname,
                         resource_list_file=args.resources,
                         lock_folder=args.lock_folder)
@@ -58,8 +59,8 @@ def main():
                                    env=env,
                                    shell=True)
         process.wait()
-        return process.returncode
+    sys.exit(process.returncode)
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    main()
