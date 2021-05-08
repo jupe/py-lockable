@@ -33,10 +33,8 @@ setup(
     # Classifiers help users find your project by categorizing it.
     # For a list of valid classifiers, see https://pypi.org/classifiers/
     classifiers=[  # Optional
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
         "Intended Audience :: Developers",
-        # Indicate who your project is intended for
-        'Intended Audience :: Developers',
         "Operating System :: POSIX",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: MacOS :: MacOS X",
@@ -48,9 +46,8 @@ setup(
         'Programming Language :: Python :: 3.7',
         "Programming Language :: Python :: 3 :: Only",
     ],
-    packages=find_packages(exclude=['tests']),  # Required
+    packages=find_packages(exclude=['tests']),
     keywords="py.test pytest lockable resource",
-    # Specify which Python versions you support.
     python_requires='>=3.7, <4',
     entry_points={
         'console_scripts': [
@@ -61,7 +58,7 @@ setup(
         'pid',
         'pydash'
     ],
-    extras_require={  # Optional
+    extras_require={
         'dev': ['nose', 'coveralls', 'pylint', 'coverage'],
         'optional': ['pytest-metadata']
     },
