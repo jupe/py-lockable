@@ -23,7 +23,7 @@ Resource is released in following cases:
 
 ```
 % lockable --help
-usage: lockable [-h] [--lock-folder LOCK_FOLDER] [--resources RESOURCES]
+usage: lockable [-h] [--validate-only] [--lock-folder LOCK_FOLDER] [--resources RESOURCES]
                 [--timeout TIMEOUT] [--hostname HOSTNAME]
                 [--requirements REQUIREMENTS]
                 [command [command ...]]
@@ -36,6 +36,7 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --validate-only       Only validate resources.json
   --lock-folder LOCK_FOLDER
                         lock folder
   --resources RESOURCES

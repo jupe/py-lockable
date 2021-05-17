@@ -19,6 +19,11 @@ def get_args():
                     'Usage example: lockable --requirements {"online":true} '
                     'echo using resource: $ID',
         formatter_class=argparse.RawTextHelpFormatter)
+
+    parser.add_argument('--validate-only',
+                        action = "store_true",
+                        default=False,
+                        help='Only validate resources.json')
     parser.add_argument('--lock-folder',
                         default='.',
                         help='lock folder')
@@ -49,6 +54,10 @@ def main():
     lockable = Lockable(hostname=args.hostname,
                         resource_list_file=args.resources,
                         lock_folder=args.lock_folder)
+
+    if args.validate_only:
+        sys.exit(0)
+
     with lockable.auto_lock(args.requirements, timeout_s=args.timeout) as allocation:
         resource = allocation.resource_info
         env = os.environ.copy()
