@@ -59,7 +59,7 @@ setup(
         'pydash'
     ],
     extras_require={
-        'dev': ['nose', 'coveralls', 'pylint', 'coverage'],
+        'dev': ['nose', 'coveralls', 'pylint', 'coverage', 'mock'],
         'optional': ['pytest-metadata']
     },
 
