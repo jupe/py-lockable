@@ -91,6 +91,7 @@ class Lockable:
             self.logger.debug(json.dumps(resource))
 
     def reload_resource_list_file(self):
+        """ Reload resources from file if file has been modified """
         if self._resource_list_file_mtime is None:
             return
 
