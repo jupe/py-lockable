@@ -1,10 +1,13 @@
-import os
-import logging
-import json
 import dataclasses
+import json
+import logging
+import mock
+import os
+import time
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
 from unittest import TestCase
+
 from lockable.lockable import Lockable, ResourceNotFound, Allocation
 
 
@@ -27,7 +30,28 @@ class LockableTests(TestCase):
             list_file = os.path.join(tmpdirname, 'test.json')
             with open(list_file, 'w') as fp:
                 fp.write('[]')
-            Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
+            lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
+            self.assertFalse(lockable._resource_list_file_mtime is None)
+
+    def test_reload_resource_list_file(self):
+        with TemporaryDirectory() as tmpdirname:
+            list_file = os.path.join(tmpdirname, 'test.json')
+            with open(list_file, 'w') as fp:
+                fp.write('[]')
+            # mtime has at worst 1 second precision
+            time.sleep(1)
+            lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
+            lockable.load_resources_list_file = mock.MagicMock()
+            self.assertEqual(lockable.load_resources_list_file.call_count, 0)
+            lockable.reload_resource_list_file()
+            self.assertEqual(lockable.load_resources_list_file.call_count, 0)
+            with open(list_file, 'w') as fp:
+                fp.write('[1]')
+            lockable.reload_resource_list_file()
+            self.assertEqual(lockable.load_resources_list_file.call_count, 1)
+            # Check that stored mtime value is updated
+            lockable.reload_resource_list_file()
+            self.assertEqual(lockable.load_resources_list_file.call_count, 1)
 
     def test_invalid_constructor(self):
         with self.assertRaises(AssertionError):
@@ -103,8 +127,10 @@ class LockableTests(TestCase):
     def test_lock_timeout_0_success(self):
         with create_lockable([{"id": 1, "hostname": "myhost", "online": True}],
                              lock_folder='.') as lockable:
+            lockable.reload_resource_list_file = mock.MagicMock()
             lock_file = os.path.join(".", "1.pid")
             object = lockable.lock({}, timeout_s=0)
+            self.assertEqual(lockable.reload_resource_list_file.call_count, 1)
             self.assertTrue(os.path.exists(lock_file))
             object.release(object.alloc_id)
             self.assertFalse(os.path.exists(lock_file))

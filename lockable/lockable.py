@@ -64,11 +64,14 @@ class Lockable:
         self._hostname = hostname
         self._lock_folder = lock_folder
         self._resource_list = None
+        self._resource_list_file_mtime = None
+        self._resource_list_file = resource_list_file
         assert not (isinstance(resource_list, list) and
                     resource_list_file), 'only one of resource_list or ' \
                                          'resource_list_file is accepted, not both'
-        if isinstance(resource_list_file, str):
-            self.load_resources_list_file(resource_list_file)
+        if isinstance(self._resource_list_file, str):
+            self._resource_list_file_mtime = os.path.getmtime(resource_list_file)
+            self.load_resources_list_file(self._resource_list_file)
         elif isinstance(resource_list, list):
             self.load_resources_list(resource_list)
         else:
@@ -87,6 +90,15 @@ class Lockable:
         for resource in self._resource_list:
             self.logger.debug(json.dumps(resource))
 
+    def reload_resource_list_file(self):
+        """ Reload resources from file if file has been modified """
+        if self._resource_list_file_mtime is None:
+            return
+
+        mtime = os.path.getmtime(self._resource_list_file)
+        if self._resource_list_file_mtime != mtime:
+            self._resource_list_file_mtime = mtime
+            self.load_resources_list_file(self._resource_list_file)
 
     @staticmethod
     def _read_resources_list(filename):
@@ -216,6 +228,7 @@ class Lockable:
         :return: Allocation context
         """
         assert isinstance(self._resource_list, list), 'resources list is not loaded'
+        self.reload_resource_list_file()
         requirements = self.parse_requirements(requirements)
         predicate = self._get_requirements(requirements, self._hostname)
         self.logger.debug("Use lock folder: %s", self._lock_folder)
