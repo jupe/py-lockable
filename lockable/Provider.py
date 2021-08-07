@@ -97,7 +97,6 @@ class ProviderFile(Provider):
 
     def reload_resource_list_file(self):
         """ Reload resources from file if file has been modified """
-
         mtime = os.path.getmtime(self._uri)
         if self._resource_list_file_mtime != mtime:
             self._resource_list_file_mtime = mtime

@@ -64,7 +64,13 @@ class Lockable:
         self.logger.debug('Initialized lockable')
         self._hostname = hostname
         self._lock_folder = lock_folder
-        self._provider = Provider.create(resource_list_file or resource_list)
+        assert not (isinstance(resource_list, list) and
+                    resource_list_file), 'only one of resource_list or ' \
+                                         'resource_list_file is accepted, not both'
+        if resource_list is None and resource_list_file is None:
+            self._provider = Provider.create([])
+        else:
+            self._provider = Provider.create(resource_list_file or resource_list)
 
     @property
     def _resource_list(self):
