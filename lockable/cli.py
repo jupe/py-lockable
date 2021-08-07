@@ -65,6 +65,7 @@ def main():
             env[key.upper()] = str(resource.get(key))
         print(json.dumps(env))
         command = ' '.join(args.command)
+        # pylint: disable=consider-using-with
         process = subprocess.Popen(command,
                                    env=env,
                                    shell=True)
