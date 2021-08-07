@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from uuid import uuid1
 from pydash import filter_, merge
 from pid import PidFile, PidFileError
-from lockable.Provider import Provider
+from lockable.provider import Provider
 
 MODULE_LOGGER = logging.getLogger('lockable')
 

@@ -1,9 +1,10 @@
+""" Provider library """
 from abc import ABC, abstractmethod
 import json
 import os
 import logging
-import requests
 from urllib.parse import urlparse
+import requests
 from requests.exceptions import HTTPError
 from pydash import filter_, count_by
 
@@ -11,16 +12,19 @@ MODULE_LOGGER = logging.getLogger('lockable')
 
 
 class ProviderError(Exception):
-    pass
+    """ Provider error """
 
 
 class Provider(ABC):
+    """ Abstract Provider """
     def __init__(self, uri: (str, list)):
+        """ Provider constructor """
         self._uri = uri
         self._resources = list()
 
     @property
-    def data(self):
+    def data(self) -> list:
+        """ Get resources list """
         self._reload()
         return self._resources
 
@@ -34,22 +38,23 @@ class Provider(ABC):
         """
         if Provider.is_http_url(uri):
             return ProviderHttp(uri)
-        elif isinstance(uri, str):
+        if isinstance(uri, str):
             return ProviderFile(uri)
-        elif isinstance(uri, list):
+        if isinstance(uri, list):
             return ProviderList(uri)
         raise AssertionError('uri should be list or string')
 
     @staticmethod
-    def is_http_url(uri):
+    def is_http_url(uri: str) -> bool:
+        """ Check if argument is url format"""
         try:
             result = urlparse(uri)
             return all([result.scheme, result.netloc])
-        except:
+        except:  # pylint: disable=bare-except
             return False
 
     @abstractmethod
-    def _reload(self):
+    def _reload(self) -> None:
         pass
 
     def set_resources_list(self, resources_list: list):
@@ -76,16 +81,25 @@ class Provider(ABC):
 
 
 class ProviderList(Provider):
+    """ ProviderList implementation """
+
     def __init__(self, uri):
+        """ ProviderList constructor """
         super().__init__(uri)
         self.set_resources_list(self._uri)
 
-    def _reload(self): pass
+    def _reload(self):
+        """ Nothing to do """
 
 
 class ProviderFile(Provider):
+    """ ProviderFile interface """
 
     def __init__(self, uri):
+        """
+        ProviderFile constructor
+        :param uri: file path
+        """
         super().__init__(uri)
         self._resource_list_file_mtime = None
         self._reload()
@@ -117,16 +131,20 @@ class ProviderFile(Provider):
 
 
 class ProviderHttp(Provider):
+    """ ProviderHttp interface"""
 
     def __init__(self, uri):
+        """ ProviderHttp constructor """
         super().__init__(uri)
         self._reload()
 
-    def _reload(self):
-        self.set_resources_list(self._reload_http(self._uri))
+    def _reload(self) -> None:
+        """ Reload resources list from web server """
+        self.set_resources_list(self._get_http(self._uri))
 
     @staticmethod
-    def _reload_http(uri):
+    def _get_http(uri) -> list:
+        """ Internal method to get http json data"""
         try:
             response = requests.get(uri)
             response.raise_for_status()
@@ -138,8 +156,8 @@ class ProviderHttp(Provider):
             # access JSON content
             return response.json()
         except HTTPError as http_err:
-            MODULE_LOGGER.error(f'HTTP error occurred: {http_err}')
+            MODULE_LOGGER.error('HTTP error occurred %s', http_err)
             raise ProviderError(http_err.response.reason) from http_err
         except Exception as err:
-            MODULE_LOGGER.error(f'Other error occurred: {err}')
+            MODULE_LOGGER.error('Other error occurred: %s', err)
             raise ProviderError(err) from err

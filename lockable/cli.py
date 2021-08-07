@@ -21,7 +21,7 @@ def get_args():
         formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--validate-only',
-                        action = "store_true",
+                        action="store_true",
                         default=False,
                         help='Only validate resources.json')
     parser.add_argument('--lock-folder',
@@ -65,7 +65,6 @@ def main():
             env[key.upper()] = str(resource.get(key))
         print(json.dumps(env))
         command = ' '.join(args.command)
-        # pylint: disable=consider-using-with
         process = subprocess.Popen(command,
                                    env=env,
                                    shell=True)
