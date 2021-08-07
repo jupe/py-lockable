@@ -55,7 +55,7 @@ class Provider(ABC):
 
     @abstractmethod
     def _reload(self) -> None:
-        pass
+        raise NotImplementedError()
 
     def set_resources_list(self, resources_list: list):
         """ Load resources list """
