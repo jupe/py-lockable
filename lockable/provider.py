@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 import json
 import os
 import logging
+import typing
 from urllib.parse import urlparse
 import requests
 from requests.exceptions import HTTPError
@@ -17,7 +18,7 @@ class ProviderError(Exception):
 
 class Provider(ABC):
     """ Abstract Provider """
-    def __init__(self, uri: (str, list)):
+    def __init__(self, uri: typing.Union[str, list]):
         """ Provider constructor """
         self._uri = uri
         self._resources = list()
