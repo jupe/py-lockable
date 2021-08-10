@@ -18,7 +18,7 @@ class ProviderError(Exception):
 
 class Provider(ABC):
     """ Abstract Provider """
-    def __init__(self, uri: typing.Union[str, List[Dict]]):
+    def __init__(self, uri: typing.Union[str, list]):
         """ Provider constructor """
         self._uri = uri
         self._resources = list()
