@@ -148,6 +148,7 @@ class LockableTests(TestCase):
             lock_file = os.path.join(lockable._lock_folder, "1.pid")
 
             allocation = lockable.lock({}, timeout_s=0)
+            self.assertIsInstance(allocation, Allocation)
             self.assertTrue(os.path.exists(lock_file))
 
             with self.assertRaises(AssertionError):

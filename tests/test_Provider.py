@@ -3,7 +3,11 @@ import logging
 import os
 from tempfile import TemporaryDirectory
 from unittest import TestCase
-from lockable.provider import Provider, ProviderError, ProviderList, ProviderHttp, ProviderFile
+from lockable.provider import Provider, ProviderError
+from lockable.provider_list import ProviderList
+from lockable.provider_http import ProviderHttp
+from lockable.provider_file import ProviderFile
+from lockable.provider_helpers import create as create_provider
 import httptest
 
 
@@ -50,9 +54,9 @@ class ProviderTests(TestCase):
 
     def test_create_raises(self):
         with self.assertRaises(FileNotFoundError):
-            Provider.create('file')
+            create_provider('file')
         with self.assertRaises(AssertionError):
-            Provider.create(object())
+            create_provider(object())
 
     def test_duplicate_id(self):
         with TemporaryDirectory() as tmpdirname:
@@ -60,24 +64,24 @@ class ProviderTests(TestCase):
             with open(list_file, 'w') as fp:
                 fp.write('[{"id": "1"}, {"id":  "1"}]')
             with self.assertRaises(ValueError):
-                Provider.create(list_file)
+                create_provider(list_file)
 
     def test_create_success(self):
-        self.assertIsInstance(Provider.create([]), ProviderList)
+        self.assertIsInstance(create_provider([]), ProviderList)
         with TemporaryDirectory() as tmpdirname:
             list_file = os.path.join(tmpdirname, 'test.json')
             with open(list_file, 'w') as fp:
                 fp.write('[]')
-            self.assertIsInstance(Provider.create(list_file), ProviderFile)
+            self.assertIsInstance(create_provider(list_file), ProviderFile)
 
     def test_provider_list(self):
         with self.assertRaises(ValueError):
-            Provider.create([{}])
-        provider = Provider.create([])
+            create_provider([{}])
+        provider = create_provider([])
         self.assertEqual(provider.data, [])
 
     def test_provider_list_set(self):
-        provider = Provider.create([])
+        provider = create_provider([])
         ref = {"id": "abc"}
         provider.set_resources_list([ref])
         self.assertDictEqual(provider.data[0], ref)
@@ -88,13 +92,14 @@ class ProviderTests(TestCase):
             ref = {"id": "abc"}
             with open(list_file, 'w') as fp:
                 fp.write(json.dumps([ref]))
-            provider = Provider.create(list_file)
+            provider = create_provider(list_file)
             self.assertDictEqual(provider.data[0], ref)
 
     @httptest.Server(TestHTTPServer200)
     def test_provider_http_success(self, ts=httptest.NoServer()):
         ts.server_name = 'localhost'
-        provider = Provider.create(ts.url())
+        provider = create_provider(ts.url())
+        self.assertIsInstance(provider, ProviderHttp)
         self.assertEqual(len(provider.data), 1)
         self.assertDictEqual(provider.data[0], {"id": "abc"})
 
@@ -102,10 +107,10 @@ class ProviderTests(TestCase):
     def test_provider_http_not_found(self, ts=httptest.NoServer()):
         ts.server_name = 'localhost'
         with self.assertRaises(ProviderError):
-            Provider.create(ts.url())
+            create_provider(ts.url())
 
     @httptest.Server(TestHTTPServerInvalidData)
     def test_provider_http_invalid_data(self, ts=httptest.NoServer()):
         ts.server_name = 'localhost'
         with self.assertRaises(ProviderError):
-            Provider.create(ts.url())
+            create_provider(ts.url())

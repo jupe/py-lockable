@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from uuid import uuid1
 from pydash import filter_, merge
 from pid import PidFile, PidFileError
-from lockable.provider import Provider
+from lockable.provider_helpers import create as create_provider
 
 MODULE_LOGGER = logging.getLogger('lockable')
 
@@ -68,9 +68,9 @@ class Lockable:
                     resource_list_file), 'only one of resource_list or ' \
                                          'resource_list_file is accepted, not both'
         if resource_list is None and resource_list_file is None:
-            self._provider = Provider.create([])
+            self._provider = create_provider([])
         else:
-            self._provider = Provider.create(resource_list_file or resource_list)
+            self._provider = create_provider(resource_list_file or resource_list)
 
     @property
     def _resource_list(self):

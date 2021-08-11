@@ -1,0 +1,20 @@
+[
+  {
+    "id": "2",
+    "online": false,
+    "hostname": "localhost",
+    "test": true
+  },
+  {
+    "id": "1",
+    "online": true,
+    "hostname": "localhost",
+    "test": false
+  },
+  {
+    "id": "3",
+    "online": true,
+    "hostname": "localhost2",
+    "test": true
+  }
+]
