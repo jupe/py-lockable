@@ -181,6 +181,8 @@ class Lockable:
         assert isinstance(self._resource_list, list), 'resources list is not loaded'
         requirements = self.parse_requirements(requirements)
         predicate = self._get_requirements(requirements, self._hostname)
+        # Refresh resources data
+        self._provider.reload()
         self.logger.debug("Use lock folder: %s", self._lock_folder)
         self.logger.debug("Requirements: %s", json.dumps(predicate))
         self.logger.debug("Resource list: %s", json.dumps(self._resource_list))

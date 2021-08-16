@@ -19,6 +19,11 @@ Resource is released in following cases:
 * allocation.unlock() is called
 * lockable.unlock(<allocation>) is called
 
+Resources data provider support following mechanisms:
+* `resources.json` file in file system
+* python list of dictionaries
+* http uri which points to API and is used with HTTP GET method. API should provide `resources.json` data as json object.
+
 # CLI interface
 
 ```
@@ -52,7 +57,7 @@ optional arguments:
 
 Constructor
 ```python
-lockable = Lockable([hostname], [resource_list_file], [lock_folder])
+lockable = Lockable([hostname], [resource_list_file], [resource_list], [lock_folder])
 ```
 
 Allocation

@@ -3,7 +3,7 @@ import logging
 import os
 from tempfile import TemporaryDirectory
 from unittest import TestCase
-from lockable.provider import ProviderError
+from lockable.provider import Provider, ProviderError
 from lockable.provider_list import ProviderList
 from lockable.provider_http import ProviderHttp
 from lockable.provider_file import ProviderFile
