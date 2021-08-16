@@ -10,8 +10,9 @@ from datetime import datetime
 from dataclasses import dataclass
 from contextlib import contextmanager
 from uuid import uuid1
-from pydash import filter_, merge, count_by
+from pydash import filter_, merge
 from pid import PidFile, PidFileError
+from lockable.provider_helpers import create as create_provider
 
 MODULE_LOGGER = logging.getLogger('lockable')
 
@@ -63,68 +64,18 @@ class Lockable:
         self.logger.debug('Initialized lockable')
         self._hostname = hostname
         self._lock_folder = lock_folder
-        self._resource_list = None
-        self._resource_list_file_mtime = None
-        self._resource_list_file = resource_list_file
         assert not (isinstance(resource_list, list) and
                     resource_list_file), 'only one of resource_list or ' \
                                          'resource_list_file is accepted, not both'
-        if isinstance(self._resource_list_file, str):
-            self._resource_list_file_mtime = os.path.getmtime(resource_list_file)
-            self.load_resources_list_file(self._resource_list_file)
-        elif isinstance(resource_list, list):
-            self.load_resources_list(resource_list)
+        if resource_list is None and resource_list_file is None:
+            self._provider = create_provider([])
         else:
-            self.logger.warning('resource_list_file or resource_list is not configured')
+            self._provider = create_provider(resource_list_file or resource_list)
 
-    def load_resources_list_file(self, filename: str):
-        """ Load resources list file"""
-        self.load_resources_list(self._read_resources_list(filename))
-        self.logger.warning('Use resources from %s file', filename)
+    @property
+    def _resource_list(self):
+        return self._provider.data
 
-    def load_resources_list(self, resources_list: list):
-        """ Load resources list """
-        assert isinstance(resources_list, list), 'resources_list is not an list'
-        self._resource_list = resources_list
-        self.logger.debug('Resources loaded: ')
-        for resource in self._resource_list:
-            self.logger.debug(json.dumps(resource))
-
-    def reload_resource_list_file(self):
-        """ Reload resources from file if file has been modified """
-        if self._resource_list_file_mtime is None:
-            return
-
-        mtime = os.path.getmtime(self._resource_list_file)
-        if self._resource_list_file_mtime != mtime:
-            self._resource_list_file_mtime = mtime
-            self.load_resources_list_file(self._resource_list_file)
-
-    @staticmethod
-    def _read_resources_list(filename):
-        """ Read resources json file """
-        MODULE_LOGGER.debug('Read resource list file: %s', filename)
-        with open(filename) as json_file:
-            try:
-                data = json.load(json_file)
-                assert isinstance(data, list), 'data is not an list'
-            except (json.decoder.JSONDecodeError, AssertionError) as error:
-                raise ValueError(f'invalid resources json file: {error}') from error
-            Lockable._validate_json(data)
-        return data
-
-    @staticmethod
-    def _validate_json(data):
-        """ Internal method to validate resources.json content """
-        counts = count_by(data, lambda obj: obj.get('id'))
-        no_ids = filter_(counts.keys(), lambda key: key is None)
-        if no_ids:
-            raise ValueError('Invalid json, id property is missing')
-
-        duplicates = filter_(counts.keys(), lambda key: counts[key] > 1)
-        if duplicates:
-            MODULE_LOGGER.warning('Duplicates: %s', duplicates)
-            raise ValueError(f"Invalid json, duplicate ids in {duplicates}")
 
     @staticmethod
     def parse_requirements(requirements_str: (str or dict)) -> dict:
@@ -228,9 +179,10 @@ class Lockable:
         :return: Allocation context
         """
         assert isinstance(self._resource_list, list), 'resources list is not loaded'
-        self.reload_resource_list_file()
         requirements = self.parse_requirements(requirements)
         predicate = self._get_requirements(requirements, self._hostname)
+        # Refresh resources data
+        self._provider.reload()
         self.logger.debug("Use lock folder: %s", self._lock_folder)
         self.logger.debug("Requirements: %s", json.dumps(predicate))
         self.logger.debug("Resource list: %s", json.dumps(self._resource_list))

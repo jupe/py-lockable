@@ -31,7 +31,7 @@ class LockableTests(TestCase):
             with open(list_file, 'w') as fp:
                 fp.write('[]')
             lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
-            self.assertFalse(lockable._resource_list_file_mtime is None)
+            self.assertFalse(lockable._provider._resource_list_file_mtime is None)
 
     def test_reload_resource_list_file(self):
         with TemporaryDirectory() as tmpdirname:
@@ -41,17 +41,17 @@ class LockableTests(TestCase):
             # mtime has at worst 1 second precision
             time.sleep(1)
             lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
-            lockable.load_resources_list_file = mock.MagicMock()
-            self.assertEqual(lockable.load_resources_list_file.call_count, 0)
-            lockable.reload_resource_list_file()
-            self.assertEqual(lockable.load_resources_list_file.call_count, 0)
+            lockable._provider._read_resources_list_file = mock.MagicMock(return_value=[])
+            self.assertEqual(lockable._provider._read_resources_list_file.call_count, 0)
+            lockable._provider.reload()
+            self.assertEqual(lockable._provider._read_resources_list_file.call_count, 0)
             with open(list_file, 'w') as fp:
                 fp.write('[1]')
-            lockable.reload_resource_list_file()
-            self.assertEqual(lockable.load_resources_list_file.call_count, 1)
+            lockable._provider.reload()
+            self.assertEqual(lockable._provider._read_resources_list_file.call_count, 1)
             # Check that stored mtime value is updated
-            lockable.reload_resource_list_file()
-            self.assertEqual(lockable.load_resources_list_file.call_count, 1)
+            lockable._provider.reload()
+            self.assertEqual(lockable._provider._read_resources_list_file.call_count, 1)
 
     def test_invalid_constructor(self):
         with self.assertRaises(AssertionError):
@@ -60,9 +60,9 @@ class LockableTests(TestCase):
 
     def test_lock_require_resources_json_loaded(self):
         lockable = Lockable()
-        with self.assertRaises(AssertionError) as error:
+        with self.assertRaises(ResourceNotFound) as error:
             lockable.lock({})
-        self.assertEqual(str(error.exception), 'resources list is not loaded')
+        self.assertEqual(str(error.exception), 'Suitable resource not available')
 
     def test_constructor_file_not_found(self):
         with TemporaryDirectory() as tmpdirname:
@@ -127,10 +127,9 @@ class LockableTests(TestCase):
     def test_lock_timeout_0_success(self):
         with create_lockable([{"id": 1, "hostname": "myhost", "online": True}],
                              lock_folder='.') as lockable:
-            lockable.reload_resource_list_file = mock.MagicMock()
+            lockable._provider._read_resources_list_file = mock.MagicMock(return_value=[])
             lock_file = os.path.join(".", "1.pid")
             object = lockable.lock({}, timeout_s=0)
-            self.assertEqual(lockable.reload_resource_list_file.call_count, 1)
             self.assertTrue(os.path.exists(lock_file))
             object.release(object.alloc_id)
             self.assertFalse(os.path.exists(lock_file))
@@ -149,6 +148,7 @@ class LockableTests(TestCase):
             lock_file = os.path.join(lockable._lock_folder, "1.pid")
 
             allocation = lockable.lock({}, timeout_s=0)
+            self.assertIsInstance(allocation, Allocation)
             self.assertTrue(os.path.exists(lock_file))
 
             with self.assertRaises(AssertionError):

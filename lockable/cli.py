@@ -21,7 +21,7 @@ def get_args():
         formatter_class=argparse.RawTextHelpFormatter)
 
     parser.add_argument('--validate-only',
-                        action = "store_true",
+                        action="store_true",
                         default=False,
                         help='Only validate resources.json')
     parser.add_argument('--lock-folder',
@@ -29,7 +29,7 @@ def get_args():
                         help='lock folder')
     parser.add_argument('--resources',
                         default='./resources.json',
-                        help='Resources file')
+                        help='Resources file or http uri')
     parser.add_argument('--timeout',
                         default=1,
                         help='Timeout for trying allocate suitable resource')
