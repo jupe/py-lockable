@@ -23,7 +23,8 @@ class ProviderHttp(Provider):
     def _configure_http_strategy(self):
         """ configure http Strategy """
         retry_strategy = Retry(
-            total=3,
+            total=5,
+            redirect=5,
             status_forcelist=[
                 429,  # Too Many Requests
                 500,  # Internal Server Error
@@ -31,7 +32,7 @@ class ProviderHttp(Provider):
                 503,  # Service Unavailable
                 504  # Gateway Timeout server error
             ],
-            method_whitelist=["HEAD", "GET", "OPTIONS"]
+            backoff_factor=0.5
         )
 
         #  create http adapter with retry strategy
@@ -47,12 +48,12 @@ class ProviderHttp(Provider):
 
     def _reload(self) -> None:
         """ Reload resources list from web server """
-        self.set_resources_list(self._get_http(self._uri))
+        self.set_resources_list(self._get_http())
 
     def _get_http(self) -> list:
         """ Internal method to get http json data"""
         try:
-            response = self._http.get(self.uri)
+            response = self._http.get(self._uri)
 
             # could utilise ETag or Last-Modified headers to optimize performance
             # etag = response.headers.get("ETag")

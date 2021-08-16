@@ -3,7 +3,7 @@ import logging
 import os
 from tempfile import TemporaryDirectory
 from unittest import TestCase
-from lockable.provider import Provider, ProviderError
+from lockable.provider import ProviderError
 from lockable.provider_list import ProviderList
 from lockable.provider_http import ProviderHttp
 from lockable.provider_file import ProviderFile
@@ -36,6 +36,7 @@ class TestHTTPServer404(httptest.Handler):
         self.end_headers()
         self.wfile.write(contents)
 
+
 class TestHTTPServerInvalidData(httptest.Handler):
 
     def do_GET(self):
@@ -45,6 +46,7 @@ class TestHTTPServerInvalidData(httptest.Handler):
         self.send_header("Content-length", len(contents))
         self.end_headers()
         self.wfile.write(contents)
+
 
 class ProviderTests(TestCase):
     def setUp(self) -> None:
