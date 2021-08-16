@@ -38,8 +38,8 @@ class Provider(ABC):
             return False
 
     @abstractmethod
-    def reload(self) -> None:
-        pass  # pragma: no cover
+    def reload(self) -> None:  # pragma: no cover
+        """ Reload resources data"""
 
     def set_resources_list(self, resources_list: list):
         """ Load resources list """
