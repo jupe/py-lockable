@@ -14,9 +14,8 @@ class ProviderHttp(Provider):
     def __init__(self, uri: str):
         """ ProviderHttp constructor """
         super().__init__(uri)
-        self._reload()
 
-    def _reload(self) -> None:
+    def reload(self) -> None:
         """ Reload resources list from web server """
         self.set_resources_list(self._get_http(self._uri))
 

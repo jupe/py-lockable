@@ -21,11 +21,11 @@ class Provider(ABC):
         """ Provider constructor """
         self._uri = uri
         self._resources = list()
+        self.reload()
 
     @property
     def data(self) -> list:
         """ Get resources list """
-        self._reload()
         return self._resources
 
     @staticmethod
@@ -38,7 +38,7 @@ class Provider(ABC):
             return False
 
     @abstractmethod
-    def _reload(self) -> None:
+    def reload(self) -> None:
         pass  # pragma: no cover
 
     def set_resources_list(self, resources_list: list):

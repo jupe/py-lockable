@@ -14,11 +14,10 @@ class ProviderFile(Provider):
         ProviderFile constructor
         :param uri: file path
         """
-        super().__init__(uri)
         self._resource_list_file_mtime = None
-        self._reload()
+        super().__init__(uri)
 
-    def _reload(self):
+    def reload(self):
         """ Load resources list file"""
         self.reload_resource_list_file()
         MODULE_LOGGER.warning('Use resources from %s file', self._uri)

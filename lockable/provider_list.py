@@ -10,5 +10,5 @@ class ProviderList(Provider):
         super().__init__(uri)
         self.set_resources_list(self._uri)
 
-    def _reload(self):
+    def reload(self):
         """ Nothing to do """
