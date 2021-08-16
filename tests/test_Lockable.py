@@ -43,14 +43,14 @@ class LockableTests(TestCase):
             lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
             lockable._provider._read_resources_list_file = mock.MagicMock(return_value=[])
             self.assertEqual(lockable._provider._read_resources_list_file.call_count, 0)
-            lockable._provider._reload()
+            lockable._provider.reload()
             self.assertEqual(lockable._provider._read_resources_list_file.call_count, 0)
             with open(list_file, 'w') as fp:
                 fp.write('[1]')
-            lockable._provider._reload()
+            lockable._provider.reload()
             self.assertEqual(lockable._provider._read_resources_list_file.call_count, 1)
             # Check that stored mtime value is updated
-            lockable._provider._reload()
+            lockable._provider.reload()
             self.assertEqual(lockable._provider._read_resources_list_file.call_count, 1)
 
     def test_invalid_constructor(self):
