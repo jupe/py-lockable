@@ -1,6 +1,5 @@
 """ resources Provider helper """
 from urllib.parse import urlparse
-from lockable.provider import Provider
 from lockable.provider_list import ProviderList
 from lockable.provider_file import ProviderFile
 from lockable.provider_http import ProviderHttp

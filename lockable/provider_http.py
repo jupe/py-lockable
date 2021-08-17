@@ -1,7 +1,7 @@
 """ resources Provider for HTTP """
 import logging
 import requests
-from requests import HTTPError, ConnectionError
+from requests import HTTPError, ConnectionError as RequestConnectionError
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from urllib3.util import parse_url
@@ -62,8 +62,8 @@ class ProviderHttp(Provider):
             # etag = response.headers.get("ETag")
             # last_modified = response.headers.get("Last-Modified")
 
-            # if we get non retry_strategy based response we still have to check if response is success,
-            # e.g. not 404..
+            # if we get non retry_strategy based response we still
+            # have to check if response is success, e.g. not 404..
             response.raise_for_status()
 
             # access JSON content
@@ -71,7 +71,7 @@ class ProviderHttp(Provider):
         except HTTPError as http_err:
             MODULE_LOGGER.error('HTTP error occurred %s', http_err)
             raise ProviderError(http_err.response.reason) from http_err
-        except ConnectionError as error:
+        except RequestConnectionError as error:
             MODULE_LOGGER.error('Connection error: %s', error)
             raise ProviderError(error) from error
         except MaxRetryError as error:
