@@ -47,10 +47,9 @@ class ProviderHttp(Provider):
 
     def reload(self) -> None:
         """ Reload resources list from web server """
-        self.set_resources_list(self._get_http(self._uri))
+        self.set_resources_list(self._get_http(self._uri))   
 
-    @staticmethod
-    def _get_http(uri: str) -> list:
+    def _get_http(self, uri: str) -> list:
         """ Internal method to get http json data"""
         try:
             response = self._http.get(uri)
