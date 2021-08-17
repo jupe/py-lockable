@@ -5,7 +5,6 @@ import typing
 from typing import List
 import logging
 
-from urllib.parse import urlparse
 from pydash import filter_, count_by
 
 MODULE_LOGGER = logging.getLogger('lockable')
@@ -27,15 +26,6 @@ class Provider(ABC):
     def data(self) -> list:
         """ Get resources list """
         return self._resources
-
-    @staticmethod
-    def is_http_url(uri: str) -> bool:
-        """ Check if argument is url format"""
-        try:
-            result = urlparse(uri)
-            return all([result.scheme, result.netloc])
-        except:  # pylint: disable=bare-except
-            return False
 
     @abstractmethod
     def reload(self) -> None:  # pragma: no cover

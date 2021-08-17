@@ -1,4 +1,5 @@
 """ resources Provider helper """
+from urllib.parse import urlparse
 from lockable.provider import Provider
 from lockable.provider_list import ProviderList
 from lockable.provider_file import ProviderFile
@@ -12,10 +13,19 @@ def create(uri):
     :return: Provider object
     :rtype: Provider
     """
-    if Provider.is_http_url(uri):
+    if is_http_url(uri):
         return ProviderHttp(uri)
     if isinstance(uri, str):
         return ProviderFile(uri)
     if isinstance(uri, list):
         return ProviderList(uri)
     raise AssertionError('uri should be list or string')
+
+
+def is_http_url(uri: str) -> bool:
+    """ Check if argument is url format"""
+    try:
+        result = urlparse(uri)
+        return all([result.scheme, result.netloc])
+    except:  # pylint: disable=bare-except
+        return False

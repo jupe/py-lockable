@@ -1,10 +1,11 @@
 """ resources Provider for HTTP """
 import logging
 import requests
-from requests import HTTPError
+from requests import HTTPError, ConnectionError
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from urllib3.util import parse_url
+from urllib3.exceptions import MaxRetryError
 
 from lockable.provider import Provider, ProviderError
 
@@ -14,6 +15,10 @@ MODULE_LOGGER = logging.getLogger('lockable')
 class ProviderHttp(Provider):
     """ ProviderHttp interface"""
 
+    TOTAL_RETRIES = 9  # This should be enough even we update server with short service break
+    REDIRECT = 5  # redirect max count
+    BACKOFF_FACTOR = 1  # [0.0s, 1s, 2s, 4s, 8s, 16s, 32s, 1min4s, 2min8s]
+
     def __init__(self, uri: str):
         """ ProviderHttp constructor """
         self._configure_http_strategy(uri)
@@ -22,8 +27,11 @@ class ProviderHttp(Provider):
     def _configure_http_strategy(self, uri):
         """ configure http Strategy """
         retry_strategy = Retry(
-            total=5,
-            redirect=5,
+            total=ProviderHttp.TOTAL_RETRIES,
+            redirect=ProviderHttp.REDIRECT,
+            connect=ProviderHttp.TOTAL_RETRIES,
+            other=ProviderHttp.TOTAL_RETRIES,
+            raise_on_status=False,
             status_forcelist=[
                 429,  # Too Many Requests
                 500,  # Internal Server Error
@@ -31,38 +39,44 @@ class ProviderHttp(Provider):
                 503,  # Service Unavailable
                 504  # Gateway Timeout server error
             ],
-            backoff_factor=0.5
+            backoff_factor=ProviderHttp.BACKOFF_FACTOR
         )
 
         #  create http adapter with retry strategy
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self._http = requests.Session()
 
-        # Assert in hook if not success response
-        assert_status_hook = (lambda response, *args, **kwargs: response.raise_for_status())
-        self._http.hooks["response"] = [assert_status_hook]
-
         url = parse_url(uri)
         self._http.mount(f'{url.scheme}://', adapter)
 
     def reload(self) -> None:
         """ Reload resources list from web server """
-        self.set_resources_list(self._get_http(self._uri))   
+        self.set_resources_list(self._get_list())
 
-    def _get_http(self, uri: str) -> list:
+    def _get_list(self) -> list:
         """ Internal method to get http json data"""
         try:
-            response = self._http.get(uri)
+            response = self._http.get(self._uri)
 
             # could utilise ETag or Last-Modified headers to optimize performance
             # etag = response.headers.get("ETag")
             # last_modified = response.headers.get("Last-Modified")
+
+            # if we get non retry_strategy based response we still have to check if response is success,
+            # e.g. not 404..
+            response.raise_for_status()
 
             # access JSON content
             return response.json()
         except HTTPError as http_err:
             MODULE_LOGGER.error('HTTP error occurred %s', http_err)
             raise ProviderError(http_err.response.reason) from http_err
-        except Exception as err:
-            MODULE_LOGGER.error('Other error occurred: %s', err)
-            raise ProviderError(err) from err
+        except ConnectionError as error:
+            MODULE_LOGGER.error('Connection error: %s', error)
+            raise ProviderError(error) from error
+        except MaxRetryError as error:
+            MODULE_LOGGER.error('Max retries error: %s', error)
+            raise ProviderError(error) from error
+        except Exception as error:
+            MODULE_LOGGER.error('Other error occurred: %s', error)
+            raise ProviderError(error) from error
