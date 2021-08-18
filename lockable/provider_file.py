@@ -3,7 +3,10 @@ import json
 import os
 from typing import List
 
-from lockable.provider import Provider, MODULE_LOGGER
+from lockable.provider import Provider
+from lockable.logger import get_logger
+
+MODULE_LOGGER = get_logger()
 
 
 class ProviderFile(Provider):

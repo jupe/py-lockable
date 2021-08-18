@@ -3,11 +3,12 @@ from abc import ABC, abstractmethod
 import json
 import typing
 from typing import List
-import logging
 
 from pydash import filter_, count_by
 
-MODULE_LOGGER = logging.getLogger('lockable')
+from lockable.logger import get_logger
+
+MODULE_LOGGER = get_logger()
 
 
 class ProviderError(Exception):
