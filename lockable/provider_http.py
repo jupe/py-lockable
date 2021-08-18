@@ -13,10 +13,11 @@ MODULE_LOGGER = logging.getLogger('lockable')
 
 
 class RetryWithLogging(Retry):
+    """ urllib3.util.retry Retry overwrite to add logging """
     def increment(self, *args, **kwargs):
         try:
             error = kwargs['error']
-            MODULE_LOGGER.warning(f'retried http resources GET due to {error}')
+            MODULE_LOGGER.warning('retried http resources GET due to %s', error)
         except KeyError:
             pass
 
