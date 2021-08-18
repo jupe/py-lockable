@@ -12,6 +12,17 @@ from lockable.provider import Provider, ProviderError
 MODULE_LOGGER = logging.getLogger('lockable')
 
 
+class RetryWithLogging(Retry):
+    def increment(self, *args, **kwargs):
+        try:
+            error = kwargs['error']
+            MODULE_LOGGER.warning(f'retried http resources GET due to {error}')
+        except KeyError:
+            pass
+
+        return super().increment(*args, *kwargs)
+
+
 class ProviderHttp(Provider):
     """ ProviderHttp interface"""
 
@@ -26,7 +37,7 @@ class ProviderHttp(Provider):
 
     def _configure_http_strategy(self, uri):
         """ configure http Strategy """
-        retry_strategy = Retry(
+        retry_strategy = RetryWithLogging(
             total=ProviderHttp.TOTAL_RETRIES,
             redirect=ProviderHttp.REDIRECT,
             connect=ProviderHttp.TOTAL_RETRIES,
