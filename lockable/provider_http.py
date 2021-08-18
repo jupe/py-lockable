@@ -4,8 +4,9 @@ import requests
 from requests import HTTPError
 
 from lockable.provider import Provider, ProviderError
+from lockable.logger import get_logger
 
-MODULE_LOGGER = logging.getLogger('lockable')
+MODULE_LOGGER = get_logger()
 
 
 class ProviderHttp(Provider):
