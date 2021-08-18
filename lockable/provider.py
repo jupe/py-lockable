@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 import json
 import typing
 from typing import List
-import logging
 
 from urllib.parse import urlparse
 from pydash import filter_, count_by

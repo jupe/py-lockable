@@ -3,7 +3,6 @@ import random
 import json
 import socket
 import os
-import logging
 import time
 import tempfile
 from datetime import datetime

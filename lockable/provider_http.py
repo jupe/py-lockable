@@ -1,5 +1,4 @@
 """ resources Provider for HTTP """
-import logging
 import requests
 from requests import HTTPError
 
