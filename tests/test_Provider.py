@@ -3,6 +3,8 @@ import logging
 import os
 from tempfile import TemporaryDirectory
 from unittest import TestCase
+from unittest.mock import MagicMock
+
 from lockable.provider import Provider, ProviderError
 from lockable.provider_list import ProviderList
 from lockable.provider_http import ProviderHttp
@@ -24,6 +26,23 @@ class TestHTTPServer200(httptest.Handler):
         self.wfile.write(contents)
 
 
+class TestHTTPServer429(httptest.Handler):
+
+    statuses = [429, 429, 200]
+    call = 0
+
+    def do_GET(self):
+        contents = "[{\"id\": \"abc\"}]".encode()
+        self.send_response(self.statuses[TestHTTPServer429.call % len(self.statuses)])
+        TestHTTPServer429.call += 1
+        self.send_header("ETag", "1234567890")
+        self.send_header("Last-Modified", "Mon, 01 Jan 1970 00:00:00 GMT")
+        self.send_header("Content-type", "text/json")
+        self.send_header("Content-length", len(contents))
+        self.end_headers()
+        self.wfile.write(contents)
+
+
 class TestHTTPServer404(httptest.Handler):
 
     def do_GET(self):
@@ -36,6 +55,7 @@ class TestHTTPServer404(httptest.Handler):
         self.end_headers()
         self.wfile.write(contents)
 
+
 class TestHTTPServerInvalidData(httptest.Handler):
 
     def do_GET(self):
@@ -46,11 +66,20 @@ class TestHTTPServerInvalidData(httptest.Handler):
         self.end_headers()
         self.wfile.write(contents)
 
+
 class ProviderTests(TestCase):
     def setUp(self) -> None:
         logger = logging.getLogger('lockable')
         logger.handlers.clear()
         logger.addHandler(logging.NullHandler())
+        # backup
+        self._total_retries = ProviderHttp.TOTAL_RETRIES
+        self._backoff_factor = ProviderHttp.BACKOFF_FACTOR
+
+    def tearDown(self) -> None:
+        # restore
+        ProviderHttp.TOTAL_RETRIES = self._total_retries
+        ProviderHttp.BACKOFF_FACTOR = self._backoff_factor
 
     def test_create_raises(self):
         with self.assertRaises(FileNotFoundError):
@@ -114,3 +143,23 @@ class ProviderTests(TestCase):
         ts.server_name = 'localhost'
         with self.assertRaises(ProviderError):
             create_provider(ts.url())
+
+    @httptest.Server(TestHTTPServer429)
+    def test_provider_http_too_many_requests_eventually_success(self, ts=httptest.NoServer()):
+        ts.server_name = 'localhost'
+        create_provider(ts.url())
+
+    @httptest.Server(TestHTTPServer429)
+    def test_provider_http_too_many_requests_fails(self, ts=httptest.NoServer()):
+        ts.server_name = 'localhost'
+        create_provider(ts.url())
+        ProviderHttp.TOTAL_RETRIES = 2
+        ProviderHttp.BACKOFF_FACTOR = 0
+        with self.assertRaises(ProviderError):
+            create_provider('http://localhost/resource')
+
+    def test_provider_http_no_response(self):
+        ProviderHttp.TOTAL_RETRIES = 2
+        ProviderHttp.BACKOFF_FACTOR = 0
+        with self.assertRaises(ProviderError):
+            create_provider('http://localhost/resource')

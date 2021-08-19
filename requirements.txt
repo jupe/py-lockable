@@ -9,3 +9,5 @@ pydash==5.0.0
 requests==2.26.0
 setuptools-scm==6.0.1
 urllib3==1.26.6
+lockable~=0.3.2.dev5+g2ca5346
+setuptools~=56.0.0
