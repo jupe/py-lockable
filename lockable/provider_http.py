@@ -21,7 +21,7 @@ class RetryWithLogging(Retry):
         except KeyError:
             pass
 
-        return super().increment(*args, *kwargs)
+        return super().increment(*args, **kwargs)
 
 
 class ProviderHttp(Provider):
