@@ -33,6 +33,7 @@ class ProviderHttp(Provider):
 
     def __init__(self, uri: str):
         """ ProviderHttp constructor """
+        MODULE_LOGGER.debug('Creating ProviderHTTP using %s', uri)
         self._configure_http_strategy(uri)
         super().__init__(uri)
 
