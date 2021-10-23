@@ -1,3 +1,4 @@
+""" Allocation context module """
 from uuid import uuid1
 from dataclasses import dataclass
 from typing import Union
@@ -23,7 +24,7 @@ class Allocation:
         return self.resource_info.get(key)
 
     def __str__(self):
-        info = ', '.join(['{}={}'.format(k, v) for k, v in self.resource_info.items()])
+        info = ', '.join([f'{k}={v}' for k, v in self.resource_info.items()])
         return f'Allocation(queue_time: {self.allocation_queue_time}, resource_info: {info})'
 
     @property
