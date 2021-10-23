@@ -67,7 +67,7 @@ print(allocation_context.resource_info)
 print(allocation_context.resource_id)
 allocation_context.unlock()
 # or using resource info
-allocation_context.unlock(allocation_context)
+lockable.unlock(allocation_context)
 ```
 
 Allocation context contains following API:
