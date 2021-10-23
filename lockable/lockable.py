@@ -5,58 +5,15 @@ import socket
 import os
 import time
 import tempfile
-from typing import Union
-from datetime import datetime, timedelta
-from dataclasses import dataclass
+from datetime import datetime
 from contextlib import contextmanager
-from uuid import uuid1
 from pydash import filter_, merge
 from pid import PidFile, PidFileError
 from lockable.provider_helpers import create as create_provider
 from lockable.logger import get_logger
+from lockable.allocation import Allocation
 
 MODULE_LOGGER = get_logger()
-
-
-@dataclass
-class Allocation:
-    """
-    Reservation dataclass
-    """
-    requirements: dict
-    resource_info: dict
-    _release: callable
-    pid_file: str
-    allocation_queue_time: timedelta = None  # how long to wait before resource allocated
-    allocation_start_time: datetime = datetime.now()
-    release_time: Union[datetime, None] = None
-    alloc_id: str = str(uuid1())
-
-    @property
-    def resource_id(self):
-        """ resource id getter """
-        return self.resource_info['id']
-
-    def release(self, alloc_id: str):
-        """ Release resource when selecting alloc_id """
-        assert self.alloc_id is not None, 'already released resource'
-        assert self.alloc_id == alloc_id, 'Allocation id mismatch'
-        self._release()
-        self.alloc_id = None
-        self.release_time = datetime.now()
-
-    def unlock(self):
-        """ Unlock/Release resource without alloc_id """
-        self.release(self.alloc_id)
-
-    @property
-    def allocation_durations(self) -> timedelta:
-        """
-        Get allocation duration
-        If allocation is not ended, returnallocation duration so far.
-        """
-        end_time = self.release_time or datetime.now()
-        return end_time - self.allocation_start_time
 
 
 class ResourceNotFound(Exception):
