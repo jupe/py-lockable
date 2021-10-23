@@ -62,13 +62,23 @@ lockable = Lockable([hostname], [resource_list_file], [resource_list], [lock_fol
 
 Allocation
 ```python
-allocation = lockable.lock(requirements, [timeout_s])
-print(allocation.resource_info)
-print(allocation.resource_id)
-allocation.unlock()
+allocation_context = lockable.lock(requirements, [timeout_s])
+print(allocation_context.resource_info)
+print(allocation_context.resource_id)
+allocation_context.unlock()
 # or using resource info
-lockable.unlock(allocation)
+allocation_context.unlock(allocation_context)
 ```
+
+Allocation context contains following API:
+* `requirements: dict` Original requirements for allocation
+* `resource_info: dict` Allocated resource information
+* `unlock(): func`  release resource lock function
+* `allocation_queue_time: timedelta` How long waited before allocation
+* `allocation_start_time: datetime` when allocation was started
+* `release_time: datetime` when allocation was ended
+* `alloc_id: str` allocation id
+* `allocation_durations: timedelta` how long time allocation takes
 
 or using context manager which unlock automatically
 ```python
