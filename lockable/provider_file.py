@@ -38,7 +38,7 @@ class ProviderFile(Provider):
     def _read_resources_list_file(filename: str) -> List[dict]:
         """ Read resources json file """
         MODULE_LOGGER.debug('Read resource list file: %s', filename)
-        with open(filename, 'r') as json_file:
+        with open(filename, encoding="utf-8") as json_file:
             try:
                 data = json.load(json_file)
                 assert isinstance(data, list), 'data is not an list'
