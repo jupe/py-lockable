@@ -26,4 +26,4 @@ class LockableTests(TestCase):
         self.assertEqual(alloc.allocation_durations,
                          alloc.release_time - alloc.allocation_start_time)
         self.assertEqual(alloc.allocation_queue_time, None)
-        self.assertEqual(str(alloc), 'Allocation(queue_time: None, id=1)')
+        self.assertEqual(str(alloc), 'Allocation(queue_time: None, resource_info: id=1)')
