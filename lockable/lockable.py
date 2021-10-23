@@ -5,7 +5,8 @@ import socket
 import os
 import time
 import tempfile
-from datetime import datetime
+from typing import Union
+from datetime import datetime, timedelta
 from dataclasses import dataclass
 from contextlib import contextmanager
 from uuid import uuid1
@@ -27,6 +28,7 @@ class Allocation:
     _release: callable
     pid_file: str
     allocation_time: datetime = datetime.now()
+    release_time: Union[datetime, None] = None
     alloc_id: str = str(uuid1())
 
     @property
@@ -39,6 +41,16 @@ class Allocation:
         assert self.alloc_id == alloc_id, 'Allocation id mismatch'
         self._release()
         self.alloc_id = None
+        self.release_time = datetime.now()
+
+    @property
+    def allocation_durations(self) -> timedelta:
+        """
+        Get allocation duration
+        If allocation is not ended, returnallocation duration so far.
+        """
+        end_time = self.release_time or datetime.now()
+        return end_time - self.allocation_time
 
 
 class ResourceNotFound(Exception):
