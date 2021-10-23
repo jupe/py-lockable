@@ -198,7 +198,7 @@ class Lockable:
         assert 'id' in allocation.resource_info, 'missing "id" -key'
         MODULE_LOGGER.info('Release: %s', allocation.resource_id)
         resource_id = allocation.resource_id
-        ResourceNotFound.invariant(resource_id in self._allocations.keys(), 'resource not locked')
+        ResourceNotFound.invariant(resource_id in self._allocations, 'resource not locked')
         reservation = self._allocations[resource_id]
         reservation.release(allocation.alloc_id)
 
