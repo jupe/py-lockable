@@ -18,6 +18,7 @@ class LockableTests(TestCase):
                            _release=lambda: True)
         self.assertEqual(alloc.resource_id, 1)
         self.assertIsInstance(alloc.allocation_durations, timedelta)
+        self.assertEqual(alloc.get('id'), 1)
         with self.assertRaises(AssertionError):
             alloc.release(2)
         alloc.release(1)
