@@ -176,8 +176,11 @@ class LockableTests(TestCase):
         with self.assertRaises(AssertionError):
             alloc.release(2)
         alloc.release(1)
+        with self.assertRaises(AssertionError):
+            alloc.unlock()
         self.assertEqual(alloc.allocation_durations,
-                         alloc.release_time - alloc.allocation_time)
+                         alloc.release_time - alloc.allocation_start_time)
+        self.assertEqual(alloc.allocation_queue_time, None)
 
     def test_lock_offline(self):
         with TemporaryDirectory() as tmpdirname:

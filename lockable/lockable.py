@@ -27,7 +27,8 @@ class Allocation:
     resource_info: dict
     _release: callable
     pid_file: str
-    allocation_time: datetime = datetime.now()
+    allocation_queue_time: timedelta = None  # how long to wait before resource allocated
+    allocation_start_time: datetime = datetime.now()
     release_time: Union[datetime, None] = None
     alloc_id: str = str(uuid1())
 
@@ -36,12 +37,17 @@ class Allocation:
         """ resource id getter """
         return self.resource_info['id']
 
-    def release(self, alloc_id):
-        """ Release resource """
+    def release(self, alloc_id: str):
+        """ Release resource when selecting alloc_id """
+        assert self.alloc_id is not None, 'already released resource'
         assert self.alloc_id == alloc_id, 'Allocation id mismatch'
         self._release()
         self.alloc_id = None
         self.release_time = datetime.now()
+
+    def unlock(self):
+        """ Unlock/Release resource without alloc_id """
+        self.release(self.alloc_id)
 
     @property
     def allocation_durations(self) -> timedelta:
@@ -50,7 +56,7 @@ class Allocation:
         If allocation is not ended, returnallocation duration so far.
         """
         end_time = self.release_time or datetime.now()
-        return end_time - self.allocation_time
+        return end_time - self.allocation_start_time
 
 
 class ResourceNotFound(Exception):
@@ -67,6 +73,7 @@ class Lockable:
     """
     Base class for Lockable. It handle low-level functionality.
     """
+
     def __init__(self, hostname=socket.gethostname(),
                  resource_list_file=None,
                  resource_list=None,
@@ -86,7 +93,6 @@ class Lockable:
     @property
     def _resource_list(self):
         return self._provider.data
-
 
     @staticmethod
     def parse_requirements(requirements_str: (str or dict)) -> dict:
@@ -144,7 +150,7 @@ class Lockable:
     def _lock_some(self, requirements, candidates, timeout_s, retry_interval):
         """ Contextmanager that lock some candidate that is free and release it finally """
         MODULE_LOGGER.debug('Total match local resources: %d, timeout: %d',
-                          len(candidates), timeout_s)
+                            len(candidates), timeout_s)
         abort_after = timeout_s
         start = time.time()
 
@@ -153,9 +159,9 @@ class Lockable:
                 try:
                     allocation = self._try_lock(requirements, candidate)
                     MODULE_LOGGER.debug('resource %s allocated (%s), alloc_id: (%s)',
-                                      allocation.resource_id,
-                                      json.dumps(allocation.resource_info),
-                                      allocation.alloc_id)
+                                        allocation.resource_id,
+                                        json.dumps(allocation.resource_info),
+                                        allocation.alloc_id)
                     return allocation
                 except AssertionError:
                     pass
@@ -169,7 +175,7 @@ class Lockable:
             MODULE_LOGGER.debug('trying to lock after short period')
             time.sleep(retry_interval)
 
-    def _lock(self, requirements, timeout_s, retry_interval=1):
+    def _lock(self, requirements, timeout_s, retry_interval=1) -> Allocation:
         """ Lock resource """
         local_resources = filter_(self._resource_list, requirements)
         random.shuffle(local_resources)
@@ -194,11 +200,13 @@ class Lockable:
         predicate = self._get_requirements(requirements, self._hostname)
         # Refresh resources data
         self._provider.reload()
+        begin = datetime.now()
         MODULE_LOGGER.debug("Use lock folder: %s", self._lock_folder)
         MODULE_LOGGER.debug("Requirements: %s", json.dumps(predicate))
         MODULE_LOGGER.debug("Resource list: %s", json.dumps(self._resource_list))
         allocation = self._lock(predicate, timeout_s)
         self._allocations[allocation.resource_id] = allocation
+        allocation.allocation_queue_time = datetime.now() - begin
         return allocation
 
     def unlock(self, allocation: Allocation) -> None:
