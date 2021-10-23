@@ -18,7 +18,6 @@ from lockable.logger import get_logger
 MODULE_LOGGER = get_logger()
 
 
-# pylint: disable=too-many-instance-attributes
 @dataclass
 class Allocation:
     """
