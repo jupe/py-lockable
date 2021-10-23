@@ -20,7 +20,7 @@ class Provider(ABC):
     def __init__(self, uri: typing.Union[str, list]):
         """ Provider constructor """
         self._uri = uri
-        self._resources = list()
+        self._resources = []
         self.reload()
 
     @property

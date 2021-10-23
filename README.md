@@ -45,7 +45,7 @@ optional arguments:
   --lock-folder LOCK_FOLDER
                         lock folder
   --resources RESOURCES
-                        Resources file
+                        Resources file (utf-8) or http uri
   --timeout TIMEOUT     Timeout for trying allocate suitable resource
   --hostname HOSTNAME   Hostname
   --requirements REQUIREMENTS

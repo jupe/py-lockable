@@ -59,7 +59,7 @@ class Lockable:
                  resource_list_file=None,
                  resource_list=None,
                  lock_folder=tempfile.gettempdir()):
-        self._allocations = dict()
+        self._allocations = {}
         MODULE_LOGGER.debug('Initialized lockable')
         self._hostname = hostname
         self._lock_folder = lock_folder
@@ -80,7 +80,7 @@ class Lockable:
     def parse_requirements(requirements_str: (str or dict)) -> dict:
         """ Parse requirements """
         if not requirements_str:
-            return dict()
+            return {}
         if isinstance(requirements_str, dict):
             return requirements_str
         try:
@@ -89,7 +89,7 @@ class Lockable:
             if error.colno > 1:
                 raise ValueError(str(error)) from error
         parts = requirements_str.split('&')
-        requirements = dict()
+        requirements = {}
         for part in parts:
             try:
                 part.index("=")
@@ -198,7 +198,7 @@ class Lockable:
         assert 'id' in allocation.resource_info, 'missing "id" -key'
         MODULE_LOGGER.info('Release: %s', allocation.resource_id)
         resource_id = allocation.resource_id
-        ResourceNotFound.invariant(resource_id in self._allocations.keys(), 'resource not locked')
+        ResourceNotFound.invariant(resource_id in self._allocations, 'resource not locked')
         reservation = self._allocations[resource_id]
         reservation.release(allocation.alloc_id)
 
