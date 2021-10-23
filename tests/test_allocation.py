@@ -1,6 +1,6 @@
 from unittest import TestCase
 import logging
-from lockable.Allocation import Allocation, timedelta
+from lockable.allocation import Allocation, timedelta
 
 
 class LockableTests(TestCase):

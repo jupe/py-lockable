@@ -11,7 +11,7 @@ from pydash import filter_, merge
 from pid import PidFile, PidFileError
 from lockable.provider_helpers import create as create_provider
 from lockable.logger import get_logger
-from lockable.Allocation import Allocation
+from lockable.allocation import Allocation
 
 MODULE_LOGGER = get_logger()
 
