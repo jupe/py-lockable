@@ -48,7 +48,8 @@ class Lockable:
             self._provider = create_provider(resource_list_file or resource_list)
 
     @property
-    def resource_list(self):
+    def resource_list(self) -> list:
+        """ Return current resources list"""
         return self._provider.data
 
     @staticmethod
