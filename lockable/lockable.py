@@ -48,7 +48,7 @@ class Lockable:
             self._provider = create_provider(resource_list_file or resource_list)
 
     @property
-    def _resource_list(self):
+    def resource_list(self):
         return self._provider.data
 
     @staticmethod
@@ -134,7 +134,7 @@ class Lockable:
 
     def _lock(self, requirements, timeout_s, retry_interval=1) -> Allocation:
         """ Lock resource """
-        local_resources = filter_(self._resource_list, requirements)
+        local_resources = filter_(self.resource_list, requirements)
         random.shuffle(local_resources)
         ResourceNotFound.invariant(local_resources, "Suitable resource not available")
         return self._lock_some(requirements, local_resources, timeout_s, retry_interval)
@@ -152,7 +152,7 @@ class Lockable:
         :param timeout_s: timeout while trying to lock
         :return: Allocation context
         """
-        assert isinstance(self._resource_list, list), 'resources list is not loaded'
+        assert isinstance(self.resource_list, list), 'resources list is not loaded'
         requirements = self.parse_requirements(requirements)
         predicate = self._get_requirements(requirements, self._hostname)
         # Refresh resources data
@@ -160,7 +160,7 @@ class Lockable:
         begin = datetime.now()
         MODULE_LOGGER.debug("Use lock folder: %s", self._lock_folder)
         MODULE_LOGGER.debug("Requirements: %s", json.dumps(predicate))
-        MODULE_LOGGER.debug("Resource list: %s", json.dumps(self._resource_list))
+        MODULE_LOGGER.debug("Resource list: %s", json.dumps(self.resource_list))
         allocation = self._lock(predicate, timeout_s)
         self._allocations[allocation.resource_id] = allocation
         allocation.allocation_queue_time = datetime.now() - begin
