@@ -1,8 +1,5 @@
-certifi==2021.5.30
-charset-normalizer==2.0.4
 coverage==5.5
 httptest==0.0.17
-idna==3.2
 mock==4.0.3
 pid==3.0.4
 pydash==5.1.0
