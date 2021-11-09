@@ -33,6 +33,14 @@ class LockableTests(TestCase):
             lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
             self.assertFalse(lockable._provider._resource_list_file_mtime is None)
 
+    def test_resource_list(self):
+        with TemporaryDirectory() as tmpdirname:
+            list_file = os.path.join(tmpdirname, 'test.json')
+            with open(list_file, 'w') as fp:
+                fp.write('[{"id": "123"}]')
+            lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
+            self.assertEqual(lockable.resource_list, [{"id": "123"}])
+
     def test_reload_resource_list_file(self):
         with TemporaryDirectory() as tmpdirname:
             list_file = os.path.join(tmpdirname, 'test.json')
