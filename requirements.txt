@@ -1,5 +1,5 @@
 certifi==2021.5.30
-charset-normalizer==2.0.4
+charset-normalizer==2.0.7
 coverage==5.5
 httptest==0.0.17
 idna==3.2
