@@ -119,8 +119,11 @@ class Lockable:
         start = time.time()
 
         current_allocations = []
+        fulfilled_requirement_indexes = []
         while True:
-            for index, req in enumerate(reversed(requirements)):
+            for index, req in enumerate(requirements):
+                if index in fulfilled_requirement_indexes:
+                    continue
                 for candidate in candidates:
                     try:
                         allocation = self._try_lock(req, candidate)
@@ -130,12 +133,13 @@ class Lockable:
                                             allocation.alloc_id)
                         self._allocations[allocation.resource_id] = allocation
                         current_allocations.append(allocation)
-                        del requirements[index]
+                        fulfilled_requirement_indexes.append(index)
+                        break
                     except AssertionError:
                         pass
 
-            # If there is no more requirements all resources were allocated successfully
-            if not requirements:
+            # All resources allocated
+            if len(requirements) == len(current_allocations):
                 break
 
             # Check if timeout occurs. No need to be high resolution timeout.
