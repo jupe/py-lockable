@@ -7,7 +7,6 @@ import random
 import socket
 import time
 import tempfile
-import threading
 
 from pydash import filter_, merge
 from pid import PidFile, PidFileError
@@ -144,6 +143,7 @@ class Lockable:
             delta = time.time() - start
             if delta >= abort_after:
                 # Unlock all already done allocations
+                # pylint: disable=expression-not-assigned
                 [allocation.unlock() for allocation in current_allocations]
                 MODULE_LOGGER.warning('Allocation timeout')
                 raise TimeoutError(f'Allocation timeout ({timeout_s}s)')
@@ -167,8 +167,10 @@ class Lockable:
             resources = filter_(self.resource_list, req)
             ResourceNotFound.invariant(resources, "Suitable resource not available")
             local_resources += resources
-        local_resources = list({v['id']:v for v in local_resources}.values()) # Unique resources by id
-        ResourceNotFound.invariant(len(local_resources) >= len(requirements), "Suitable resource not available")
+        # Unique resources by id
+        local_resources = list({v['id']:v for v in local_resources}.values())
+        ResourceNotFound.invariant(
+            len(local_resources) >= len(requirements), "Suitable resource not available")
         random.shuffle(local_resources)
         return self._lock_some(requirements, local_resources, timeout_s, retry_interval)
 
@@ -199,6 +201,12 @@ class Lockable:
         return allocation
 
     def lock_many(self, requirements: list, timeout_s: int = DEFAULT_TIMEOUT) -> list:
+        """
+        Lock many resources
+        :param requirements: resource requirements, list of string or dicts
+        :param timeout_s: max duration to try to lock
+        :return: List of allocation contexts
+        """
         assert isinstance(self.resource_list, list), "resources list is not loaded"
         predicates = []
         for req in requirements:
