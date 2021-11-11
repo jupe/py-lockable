@@ -1,4 +1,5 @@
 import dataclasses
+from datetime import timedelta
 import json
 import logging
 import mock
@@ -211,6 +212,8 @@ class LockableTests(TestCase):
             self.assertFalse(os.path.exists(os.path.join(tmpdirname, '1.pid')))
             self.assertFalse(os.path.exists(os.path.join(tmpdirname, '2.pid')))
             allocations = lockable.lock_many(['id=1', 'id=2'], timeout_s=0)
+            self.assertTrue(allocations[0].allocation_queue_time < timedelta(seconds=1))
+            self.assertTrue(allocations[1].allocation_queue_time < timedelta(seconds=1))
             self.assertTrue(os.path.exists(os.path.join(tmpdirname, '1.pid')))
             self.assertTrue(os.path.exists(os.path.join(tmpdirname, '2.pid')))
             lockable.unlock(allocations[0])
@@ -251,7 +254,10 @@ class LockableTests(TestCase):
             allocations = lockable.lock_many(['id=a'], timeout_s=0)
             self.assertTrue(os.path.exists(os.path.join(tmpdirname, 'a.pid')))
 
+            start = time.time()
             with self.assertRaises(TimeoutError):
-                lockable.lock_many(['id=a', 'id=b'], timeout_s=0)
+                lockable.lock_many(['id=a', 'id=b'], timeout_s=1)
+            end = time.time()
+            self.assertTrue(end - start < 2 and end - start > 1)
             self.assertTrue(os.path.exists(os.path.join(tmpdirname, 'a.pid')))
             self.assertFalse(os.path.exists(os.path.join(tmpdirname, 'b.pid')))
