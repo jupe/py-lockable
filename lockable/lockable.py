@@ -1,19 +1,22 @@
 """ lockable library """
-import random
+from contextlib import contextmanager
+from datetime import datetime
 import json
-import socket
 import os
+import random
+import socket
 import time
 import tempfile
-from datetime import datetime
-from contextlib import contextmanager
+
 from pydash import filter_, merge
 from pid import PidFile, PidFileError
-from lockable.provider_helpers import create as create_provider
-from lockable.logger import get_logger
+
 from lockable.allocation import Allocation
+from lockable.logger import get_logger
+from lockable.provider_helpers import create as create_provider
 
 MODULE_LOGGER = get_logger()
+DEFAULT_TIMEOUT=1000
 
 
 class ResourceNotFound(Exception):
@@ -31,7 +34,8 @@ class Lockable:
     Base class for Lockable. It handle low-level functionality.
     """
 
-    def __init__(self, hostname=socket.gethostname(),
+    def __init__(self,
+                 hostname=socket.gethostname(),
                  resource_list_file=None,
                  resource_list=None,
                  lock_folder=tempfile.gettempdir()):
@@ -109,35 +113,69 @@ class Lockable:
         """ Contextmanager that lock some candidate that is free and release it finally """
         MODULE_LOGGER.debug('Total match local resources: %d, timeout: %d',
                             len(candidates), timeout_s)
+        if not isinstance(requirements, list):
+            requirements = [requirements]
         abort_after = timeout_s
         start = time.time()
 
+        current_allocations = []
+        fulfilled_requirement_indexes = []
         while True:
-            for candidate in candidates:
-                try:
-                    allocation = self._try_lock(requirements, candidate)
-                    MODULE_LOGGER.debug('resource %s allocated (%s), alloc_id: (%s)',
-                                        allocation.resource_id,
-                                        json.dumps(allocation.resource_info),
-                                        allocation.alloc_id)
-                    return allocation
-                except AssertionError:
-                    pass
+            for index, req in enumerate(requirements):
+                if index in fulfilled_requirement_indexes:
+                    continue
+                for candidate in candidates:
+                    try:
+                        allocation = self._try_lock(req, candidate)
+                        MODULE_LOGGER.debug('resource %s allocated (%s), alloc_id: (%s)',
+                                            allocation.resource_id,
+                                            json.dumps(allocation.resource_info),
+                                            allocation.alloc_id)
+                        self._allocations[allocation.resource_id] = allocation
+                        current_allocations.append(allocation)
+                        fulfilled_requirement_indexes.append(index)
+                        break
+                    except AssertionError:
+                        pass
+
+            # All resources allocated
+            if len(requirements) == len(current_allocations):
+                break
+
             # Check if timeout occurs. No need to be high resolution timeout.
             # in first loop we should first check before giving up.
             delta = time.time() - start
             if delta >= abort_after:
+                # Unlock all already done allocations
+                # pylint: disable=expression-not-assigned
+                [allocation.unlock() for allocation in current_allocations]
                 MODULE_LOGGER.warning('Allocation timeout')
                 raise TimeoutError(f'Allocation timeout ({timeout_s}s)')
 
             MODULE_LOGGER.debug('trying to lock after short period')
             time.sleep(retry_interval)
 
+        return current_allocations
+
     def _lock(self, requirements, timeout_s, retry_interval=1) -> Allocation:
         """ Lock resource """
         local_resources = filter_(self.resource_list, requirements)
         random.shuffle(local_resources)
         ResourceNotFound.invariant(local_resources, "Suitable resource not available")
+        return self._lock_some(requirements, local_resources, timeout_s, retry_interval)[0]
+
+    def _lock_many(self, requirements, timeout_s, retry_interval=1) -> [Allocation]:
+        """ Lock resource """
+        local_resources = []
+        for req in requirements:
+            resources = filter_(self.resource_list, req)
+            ResourceNotFound.invariant(resources, "Suitable resource not available")
+            local_resources += resources
+        # Unique resources by id
+        local_resources = list({v['id']:v for v in local_resources}.values())
+        ResourceNotFound.invariant(
+            len(local_resources) >= len(requirements), "Suitable resource not available")
+        random.shuffle(local_resources)
         return self._lock_some(requirements, local_resources, timeout_s, retry_interval)
 
     @staticmethod
@@ -146,7 +184,7 @@ class Lockable:
         MODULE_LOGGER.debug('hostname: %s', hostname)
         return merge(dict(hostname=hostname, online=True), requirements)
 
-    def lock(self, requirements: (str or dict), timeout_s: int = 1000) -> Allocation:
+    def lock(self, requirements: (str or dict), timeout_s: int = DEFAULT_TIMEOUT) -> Allocation:
         """
         Lock resource
         :param requirements: resource requirements
@@ -163,9 +201,30 @@ class Lockable:
         MODULE_LOGGER.debug("Requirements: %s", json.dumps(predicate))
         MODULE_LOGGER.debug("Resource list: %s", json.dumps(self.resource_list))
         allocation = self._lock(predicate, timeout_s)
-        self._allocations[allocation.resource_id] = allocation
         allocation.allocation_queue_time = datetime.now() - begin
         return allocation
+
+    def lock_many(self, requirements: list, timeout_s: int = DEFAULT_TIMEOUT) -> list:
+        """
+        Lock many resources
+        :param requirements: resource requirements, list of string or dicts
+        :param timeout_s: max duration to try to lock
+        :return: List of allocation contexts
+        """
+        assert isinstance(self.resource_list, list), "resources list is not loaded"
+        predicates = []
+        for req in requirements:
+            predicates.append(self._get_requirements(self.parse_requirements(req), self._hostname))
+        self._provider.reload()
+        begin = datetime.now()
+        MODULE_LOGGER.debug("Use lock folder: %s", self._lock_folder)
+        MODULE_LOGGER.debug("Requirements: %s", json.dumps(predicates))
+        MODULE_LOGGER.debug("Resource list: %s", json.dumps(self.resource_list))
+
+        allocations = self._lock_many(predicates, timeout_s)
+        for allocation in allocations:
+            allocation.allocation_queue_time = datetime.now() - begin
+        return allocations
 
     def unlock(self, allocation: Allocation) -> None:
         """
