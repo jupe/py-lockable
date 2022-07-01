@@ -4,6 +4,6 @@ mock==4.0.3
 pid==3.0.4
 pydash==5.1.0
 requests==2.27.1
-setuptools-scm==6.4.2
+setuptools-scm==7.0.4
 urllib3==1.26.9
 setuptools~=60.10.0
