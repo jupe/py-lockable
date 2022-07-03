@@ -172,7 +172,7 @@ class Lockable:
             ResourceNotFound.invariant(resources, "Suitable resource not available")
             local_resources += resources
         # Unique resources by id
-        local_resources = list({v['id']:v for v in local_resources}.values())
+        local_resources = list({v['id']: v for v in local_resources}.values())
         ResourceNotFound.invariant(
             len(local_resources) >= len(requirements), "Suitable resource not available")
         random.shuffle(local_resources)
