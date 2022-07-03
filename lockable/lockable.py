@@ -182,7 +182,13 @@ class Lockable:
     def _get_requirements(requirements, hostname):
         """ Generate requirements"""
         MODULE_LOGGER.debug('hostname: %s', hostname)
-        return merge(dict(hostname=hostname, online=True), requirements)
+        merged = merge(dict(hostname=hostname, online=True), requirements)
+        allowed_to_del = ["online", "hostname"]
+        for key in allowed_to_del:
+            # allow to remove online requirement by set it to None
+            if merged[key] is None:
+                del merged[key]
+        return merged
 
     def lock(self, requirements: (str or dict), timeout_s: int = DEFAULT_TIMEOUT) -> Allocation:
         """
