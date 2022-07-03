@@ -42,6 +42,13 @@ class LockableTests(TestCase):
             lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
             self.assertEqual(lockable.resource_list, [{"id": "123"}])
 
+    def test_get_requirements(self):
+        reqs = Lockable._get_requirements(dict(a=1), "myhost")
+        self.assertEqual(reqs, {"online": True, "a": 1, "hostname": "myhost" })
+
+        reqs = Lockable._get_requirements(dict(a=1, online=False), "myhost")
+        self.assertEqual(reqs, {"online": False, "a": 1, "hostname": "myhost"})
+
     def test_reload_resource_list_file(self):
         with TemporaryDirectory() as tmpdirname:
             list_file = os.path.join(tmpdirname, 'test.json')
