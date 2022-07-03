@@ -85,3 +85,8 @@ or using context manager which unlock automatically
 with lockable.auto_lock(requirements, [timeout_s]) as allocation:
     print(allocation.resource_info)
 ```
+
+**Tips:**
+
+You can allocate also offline devices by set requirements `"online": None` . 
+You can ignore also `hostname` same same way by  setting it to  None`
