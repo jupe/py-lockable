@@ -1,43 +1,22 @@
 """ lockable library """
-import random
+from contextlib import contextmanager
+from datetime import datetime
 import json
-import socket
 import os
-import logging
+import random
+import socket
 import time
 import tempfile
-from datetime import datetime
-from dataclasses import dataclass
-from contextlib import contextmanager
-from uuid import uuid1
-from pydash import filter_, merge, count_by
+
+from pydash import filter_, merge
 from pid import PidFile, PidFileError
 
-MODULE_LOGGER = logging.getLogger('lockable')
+from lockable.allocation import Allocation
+from lockable.logger import get_logger
+from lockable.provider_helpers import create as create_provider
 
-
-@dataclass
-class Allocation:
-    """
-    Reservation dataclass
-    """
-    requirements: dict
-    resource_info: dict
-    _release: callable
-    pid_file: str
-    allocation_time: datetime = datetime.now()
-    alloc_id: str = str(uuid1())
-
-    @property
-    def resource_id(self):
-        """ resource id getter """
-        return self.resource_info['id']
-
-    def release(self, alloc_id):
-        """ Release resource """
-        assert self.alloc_id == alloc_id, 'Allocation id mismatch'
-        self._release()
-        self.alloc_id = None
+MODULE_LOGGER = get_logger()
+DEFAULT_TIMEOUT=1000
 
 
 class ResourceNotFound(Exception):
@@ -54,71 +33,34 @@ class Lockable:
     """
     Base class for Lockable. It handle low-level functionality.
     """
-    def __init__(self, hostname=socket.gethostname(),
+
+    def __init__(self,
+                 hostname=socket.gethostname(),
                  resource_list_file=None,
                  resource_list=None,
                  lock_folder=tempfile.gettempdir()):
-        self._allocations = dict()
-        self.logger = logging.getLogger('lockable.Lockable')
-        self.logger.debug('Initialized lockable')
+        self._allocations = {}
+        MODULE_LOGGER.debug('Initialized lockable')
         self._hostname = hostname
         self._lock_folder = lock_folder
-        self._resource_list = None
         assert not (isinstance(resource_list, list) and
                     resource_list_file), 'only one of resource_list or ' \
                                          'resource_list_file is accepted, not both'
-        if isinstance(resource_list_file, str):
-            self.load_resources_list_file(resource_list_file)
-        elif isinstance(resource_list, list):
-            self.load_resources_list(resource_list)
+        if resource_list is None and resource_list_file is None:
+            self._provider = create_provider([])
         else:
-            self.logger.warning('resource_list_file or resource_list is not configured')
+            self._provider = create_provider(resource_list_file or resource_list)
 
-    def load_resources_list_file(self, filename: str):
-        """ Load resources list file"""
-        self.load_resources_list(self._read_resources_list(filename))
-        self.logger.warning('Use resources from %s file', filename)
-
-    def load_resources_list(self, resources_list: list):
-        """ Load resources list """
-        assert isinstance(resources_list, list), 'resources_list is not an list'
-        self._resource_list = resources_list
-        self.logger.debug('Resources loaded: ')
-        for resource in self._resource_list:
-            self.logger.debug(json.dumps(resource))
-
-
-    @staticmethod
-    def _read_resources_list(filename):
-        """ Read resources json file """
-        MODULE_LOGGER.debug('Read resource list file: %s', filename)
-        with open(filename) as json_file:
-            try:
-                data = json.load(json_file)
-                assert isinstance(data, list), 'data is not an list'
-            except (json.decoder.JSONDecodeError, AssertionError) as error:
-                raise ValueError(f'invalid resources json file: {error}') from error
-            Lockable._validate_json(data)
-        return data
-
-    @staticmethod
-    def _validate_json(data):
-        """ Internal method to validate resources.json content """
-        counts = count_by(data, lambda obj: obj.get('id'))
-        no_ids = filter_(counts.keys(), lambda key: key is None)
-        if no_ids:
-            raise ValueError('Invalid json, id property is missing')
-
-        duplicates = filter_(counts.keys(), lambda key: counts[key] > 1)
-        if duplicates:
-            MODULE_LOGGER.warning('Duplicates: %s', duplicates)
-            raise ValueError(f"Invalid json, duplicate ids in {duplicates}")
+    @property
+    def resource_list(self) -> list:
+        """ Return current resources list"""
+        return self._provider.data
 
     @staticmethod
     def parse_requirements(requirements_str: (str or dict)) -> dict:
         """ Parse requirements """
         if not requirements_str:
-            return dict()
+            return {}
         if isinstance(requirements_str, dict):
             return requirements_str
         try:
@@ -127,7 +69,7 @@ class Lockable:
             if error.colno > 1:
                 raise ValueError(str(error)) from error
         parts = requirements_str.split('&')
-        requirements = dict()
+        requirements = {}
         for part in parts:
             try:
                 part.index("=")
@@ -148,15 +90,15 @@ class Lockable:
         resource_id = candidate.get("id")
         try:
             pid_file = f"{resource_id}.pid"
-            self.logger.debug('Trying lock using: %s', os.path.join(self._lock_folder, pid_file))
+            MODULE_LOGGER.debug('Trying lock using: %s', os.path.join(self._lock_folder, pid_file))
 
             _lockable = PidFile(pidname=pid_file, piddir=self._lock_folder)
             _lockable.create()
-            self.logger.info('Allocated: %s, lockfile: %s', resource_id, pid_file)
+            MODULE_LOGGER.info('Allocated: %s, lockfile: %s', resource_id, pid_file)
 
             def release():
                 nonlocal self, resource_id, _lockable
-                self.logger.info('Release resource: %s', resource_id)
+                MODULE_LOGGER.info('Release resource: %s', resource_id)
                 _lockable.close()
                 del self._allocations[resource_id]
 
@@ -169,61 +111,126 @@ class Lockable:
 
     def _lock_some(self, requirements, candidates, timeout_s, retry_interval):
         """ Contextmanager that lock some candidate that is free and release it finally """
-        self.logger.debug('Total match local resources: %d, timeout: %d',
-                          len(candidates), timeout_s)
+        MODULE_LOGGER.debug('Total match local resources: %d, timeout: %d',
+                            len(candidates), timeout_s)
+        if not isinstance(requirements, list):
+            requirements = [requirements]
         abort_after = timeout_s
         start = time.time()
 
+        current_allocations = []
+        fulfilled_requirement_indexes = []
         while True:
-            for candidate in candidates:
-                try:
-                    allocation = self._try_lock(requirements, candidate)
-                    self.logger.debug('resource %s allocated (%s), alloc_id: (%s)',
-                                      allocation.resource_id,
-                                      json.dumps(allocation.resource_info),
-                                      allocation.alloc_id)
-                    return allocation
-                except AssertionError:
-                    pass
+            for index, req in enumerate(requirements):
+                if index in fulfilled_requirement_indexes:
+                    continue
+                for candidate in candidates:
+                    try:
+                        allocation = self._try_lock(req, candidate)
+                        MODULE_LOGGER.debug('resource %s allocated (%s), alloc_id: (%s)',
+                                            allocation.resource_id,
+                                            json.dumps(allocation.resource_info),
+                                            allocation.alloc_id)
+                        self._allocations[allocation.resource_id] = allocation
+                        current_allocations.append(allocation)
+                        fulfilled_requirement_indexes.append(index)
+                        break
+                    except AssertionError:
+                        pass
+
+            # All resources allocated
+            if len(requirements) == len(current_allocations):
+                break
+
             # Check if timeout occurs. No need to be high resolution timeout.
             # in first loop we should first check before giving up.
             delta = time.time() - start
             if delta >= abort_after:
-                self.logger.warning('Allocation timeout')
+                # Unlock all already done allocations
+                # pylint: disable=expression-not-assigned
+                [allocation.unlock() for allocation in current_allocations]
+                MODULE_LOGGER.warning('Allocation timeout')
                 raise TimeoutError(f'Allocation timeout ({timeout_s}s)')
 
-            self.logger.debug('trying to lock after short period')
+            MODULE_LOGGER.debug('trying to lock after short period')
             time.sleep(retry_interval)
 
-    def _lock(self, requirements, timeout_s, retry_interval=1):
+        return current_allocations
+
+    def _lock(self, requirements, timeout_s, retry_interval=1) -> Allocation:
         """ Lock resource """
-        local_resources = filter_(self._resource_list, requirements)
+        local_resources = filter_(self.resource_list, requirements)
         random.shuffle(local_resources)
         ResourceNotFound.invariant(local_resources, "Suitable resource not available")
+        return self._lock_some(requirements, local_resources, timeout_s, retry_interval)[0]
+
+    def _lock_many(self, requirements, timeout_s, retry_interval=1) -> [Allocation]:
+        """ Lock resource """
+        local_resources = []
+        for req in requirements:
+            resources = filter_(self.resource_list, req)
+            ResourceNotFound.invariant(resources, "Suitable resource not available")
+            local_resources += resources
+        # Unique resources by id
+        local_resources = list({v['id']: v for v in local_resources}.values())
+        ResourceNotFound.invariant(
+            len(local_resources) >= len(requirements), "Suitable resource not available")
+        random.shuffle(local_resources)
         return self._lock_some(requirements, local_resources, timeout_s, retry_interval)
 
     @staticmethod
     def _get_requirements(requirements, hostname):
         """ Generate requirements"""
         MODULE_LOGGER.debug('hostname: %s', hostname)
-        return merge(dict(hostname=hostname, online=True), requirements)
+        merged = merge(dict(hostname=hostname, online=True), requirements)
+        allowed_to_del = ["online", "hostname"]
+        for key in allowed_to_del:
+            # allow to remove online requirement by set it to None
+            if merged[key] is None:
+                del merged[key]
+        return merged
 
-    def lock(self, requirements: (str or dict), timeout_s: int = 1000) -> Allocation:
+    def lock(self, requirements: (str or dict), timeout_s: int = DEFAULT_TIMEOUT) -> Allocation:
         """
         Lock resource
         :param requirements: resource requirements
         :param timeout_s: timeout while trying to lock
         :return: Allocation context
         """
-        assert isinstance(self._resource_list, list), 'resources list is not loaded'
+        assert isinstance(self.resource_list, list), 'resources list is not loaded'
         requirements = self.parse_requirements(requirements)
         predicate = self._get_requirements(requirements, self._hostname)
-        self.logger.debug("Use lock folder: %s", self._lock_folder)
-        self.logger.debug("Requirements: %s", json.dumps(predicate))
-        self.logger.debug("Resource list: %s", json.dumps(self._resource_list))
+        # Refresh resources data
+        self._provider.reload()
+        begin = datetime.now()
+        MODULE_LOGGER.debug("Use lock folder: %s", self._lock_folder)
+        MODULE_LOGGER.debug("Requirements: %s", json.dumps(predicate))
+        MODULE_LOGGER.debug("Resource list: %s", json.dumps(self.resource_list))
         allocation = self._lock(predicate, timeout_s)
-        self._allocations[allocation.resource_id] = allocation
+        allocation.allocation_queue_time = datetime.now() - begin
         return allocation
+
+    def lock_many(self, requirements: list, timeout_s: int = DEFAULT_TIMEOUT) -> list:
+        """
+        Lock many resources
+        :param requirements: resource requirements, list of string or dicts
+        :param timeout_s: max duration to try to lock
+        :return: List of allocation contexts
+        """
+        assert isinstance(self.resource_list, list), "resources list is not loaded"
+        predicates = []
+        for req in requirements:
+            predicates.append(self._get_requirements(self.parse_requirements(req), self._hostname))
+        self._provider.reload()
+        begin = datetime.now()
+        MODULE_LOGGER.debug("Use lock folder: %s", self._lock_folder)
+        MODULE_LOGGER.debug("Requirements: %s", json.dumps(predicates))
+        MODULE_LOGGER.debug("Resource list: %s", json.dumps(self.resource_list))
+
+        allocations = self._lock_many(predicates, timeout_s)
+        for allocation in allocations:
+            allocation.allocation_queue_time = datetime.now() - begin
+        return allocations
 
     def unlock(self, allocation: Allocation) -> None:
         """
@@ -232,9 +239,9 @@ class Lockable:
         :return: None
         """
         assert 'id' in allocation.resource_info, 'missing "id" -key'
-        self.logger.info('Release: %s', allocation.resource_id)
+        MODULE_LOGGER.info('Release: %s', allocation.resource_id)
         resource_id = allocation.resource_id
-        ResourceNotFound.invariant(resource_id in self._allocations.keys(), 'resource not locked')
+        ResourceNotFound.invariant(resource_id in self._allocations, 'resource not locked')
         reservation = self._allocations[resource_id]
         reservation.release(allocation.alloc_id)
 

@@ -1,10 +1,14 @@
-import os
-import logging
-import json
 import dataclasses
+from datetime import timedelta
+import json
+import logging
+import mock
+import os
+import time
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
 from unittest import TestCase
+
 from lockable.lockable import Lockable, ResourceNotFound, Allocation
 
 
@@ -27,7 +31,49 @@ class LockableTests(TestCase):
             list_file = os.path.join(tmpdirname, 'test.json')
             with open(list_file, 'w') as fp:
                 fp.write('[]')
-            Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
+            lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
+            self.assertFalse(lockable._provider._resource_list_file_mtime is None)
+
+    def test_resource_list(self):
+        with TemporaryDirectory() as tmpdirname:
+            list_file = os.path.join(tmpdirname, 'test.json')
+            with open(list_file, 'w') as fp:
+                fp.write('[{"id": "123"}]')
+            lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
+            self.assertEqual(lockable.resource_list, [{"id": "123"}])
+
+    def test_get_requirements(self):
+        reqs = Lockable._get_requirements(dict(a=1), "myhost")
+        self.assertEqual(reqs, {"online": True, "a": 1, "hostname": "myhost" })
+
+        reqs = Lockable._get_requirements(dict(a=1, online=False), "myhost")
+        self.assertEqual(reqs, {"online": False, "a": 1, "hostname": "myhost"})
+
+        reqs = Lockable._get_requirements(dict(a=1, online=None), "myhost")
+        self.assertEqual(reqs, {"a": 1, "hostname": "myhost"})
+
+        reqs = Lockable._get_requirements(dict(a=1, hostname=None), "myhost")
+        self.assertEqual(reqs, {"a": 1, "online": True})
+
+    def test_reload_resource_list_file(self):
+        with TemporaryDirectory() as tmpdirname:
+            list_file = os.path.join(tmpdirname, 'test.json')
+            with open(list_file, 'w') as fp:
+                fp.write('[]')
+            # mtime has at worst 1 second precision
+            time.sleep(1)
+            lockable = Lockable(hostname='myhost', resource_list_file=list_file, lock_folder=tmpdirname)
+            lockable._provider._read_resources_list_file = mock.MagicMock(return_value=[])
+            self.assertEqual(lockable._provider._read_resources_list_file.call_count, 0)
+            lockable._provider.reload()
+            self.assertEqual(lockable._provider._read_resources_list_file.call_count, 0)
+            with open(list_file, 'w') as fp:
+                fp.write('[1]')
+            lockable._provider.reload()
+            self.assertEqual(lockable._provider._read_resources_list_file.call_count, 1)
+            # Check that stored mtime value is updated
+            lockable._provider.reload()
+            self.assertEqual(lockable._provider._read_resources_list_file.call_count, 1)
 
     def test_invalid_constructor(self):
         with self.assertRaises(AssertionError):
@@ -36,9 +82,9 @@ class LockableTests(TestCase):
 
     def test_lock_require_resources_json_loaded(self):
         lockable = Lockable()
-        with self.assertRaises(AssertionError) as error:
+        with self.assertRaises(ResourceNotFound) as error:
             lockable.lock({})
-        self.assertEqual(str(error.exception), 'resources list is not loaded')
+        self.assertEqual(str(error.exception), 'Suitable resource not available')
 
     def test_constructor_file_not_found(self):
         with TemporaryDirectory() as tmpdirname:
@@ -103,6 +149,7 @@ class LockableTests(TestCase):
     def test_lock_timeout_0_success(self):
         with create_lockable([{"id": 1, "hostname": "myhost", "online": True}],
                              lock_folder='.') as lockable:
+            lockable._provider._read_resources_list_file = mock.MagicMock(return_value=[])
             lock_file = os.path.join(".", "1.pid")
             object = lockable.lock({}, timeout_s=0)
             self.assertTrue(os.path.exists(lock_file))
@@ -123,6 +170,7 @@ class LockableTests(TestCase):
             lock_file = os.path.join(lockable._lock_folder, "1.pid")
 
             allocation = lockable.lock({}, timeout_s=0)
+            self.assertIsInstance(allocation, Allocation)
             self.assertTrue(os.path.exists(lock_file))
 
             with self.assertRaises(AssertionError):
@@ -138,9 +186,6 @@ class LockableTests(TestCase):
 
             lockable.unlock(allocation)
             self.assertFalse(os.path.exists(lock_file))
-
-
-    #def test_unlock_fails_with_invalid_alloc_id(self):
 
     def test_lock_offline(self):
         with TemporaryDirectory() as tmpdirname:
@@ -169,3 +214,63 @@ class LockableTests(TestCase):
                 self.assertEqual(resource, resource_info)
                 self.assertTrue(os.path.exists(lock_file))
             self.assertFalse(os.path.exists(lock_file))
+
+    def test_lock_many(self):
+        with TemporaryDirectory() as tmpdirname:
+            resources = [
+                {"id": "1", "hostname": "myhost", "online": True},
+                {"id": "2", "hostname": "myhost", "online": True}
+            ]
+            lockable = Lockable(hostname='myhost', resource_list=resources, lock_folder=tmpdirname)
+            self.assertFalse(os.path.exists(os.path.join(tmpdirname, '1.pid')))
+            self.assertFalse(os.path.exists(os.path.join(tmpdirname, '2.pid')))
+            allocations = lockable.lock_many(['id=1', 'id=2'], timeout_s=0)
+            self.assertTrue(allocations[0].allocation_queue_time < timedelta(seconds=1))
+            self.assertTrue(allocations[1].allocation_queue_time < timedelta(seconds=1))
+            self.assertTrue(os.path.exists(os.path.join(tmpdirname, '1.pid')))
+            self.assertTrue(os.path.exists(os.path.join(tmpdirname, '2.pid')))
+            lockable.unlock(allocations[0])
+            lockable.unlock(allocations[1])
+            self.assertFalse(os.path.exists(os.path.join(tmpdirname, '1.pid')))
+            self.assertFalse(os.path.exists(os.path.join(tmpdirname, '2.pid')))
+
+    def test_lock_many_can_not_fulfill(self):
+        with TemporaryDirectory() as tmpdirname:
+            resources = [
+                {"id": "a", "hostname": "myhost", "online": True},
+                {"id": "b", "hostname": "myhost", "online": True},
+                {"id": "c", "hostname": "myhost", "online": True},
+                {"id": "d", "hostname": "myhost", "online": True},
+                {"id": "e", "hostname": "myhost", "online": True}
+            ]
+            lockable = Lockable(hostname='myhost', resource_list=resources, lock_folder=tmpdirname)
+            with self.assertRaises(ResourceNotFound):
+                lockable.lock_many(['id=a', 'id=x'], timeout_s=0)
+            self.assertFalse(os.path.exists(os.path.join(tmpdirname, 'a.pid')))
+            self.assertFalse(os.path.exists(os.path.join(tmpdirname, 'x.pid')))
+
+            with self.assertRaises(ResourceNotFound):
+                lockable.lock_many(['id=a', 'id=a'], timeout_s=0)
+            self.assertFalse(os.path.exists(os.path.join(tmpdirname, 'a.pid')))
+
+    def test_lock_many_existing_allocation(self):
+        with TemporaryDirectory() as tmpdirname:
+            resources = [
+                {"id": "a", "hostname": "myhost", "online": True},
+                {"id": "b", "hostname": "myhost", "online": True},
+                {"id": "c", "hostname": "myhost", "online": True},
+                {"id": "d", "hostname": "myhost", "online": True},
+                {"id": "e", "hostname": "myhost", "online": True}
+            ]
+
+            lockable = Lockable(hostname='myhost', resource_list=resources, lock_folder=tmpdirname)
+            allocations = lockable.lock_many(['id=a'], timeout_s=0)
+            self.assertTrue(os.path.exists(os.path.join(tmpdirname, 'a.pid')))
+
+            start = time.time()
+            with self.assertRaises(TimeoutError):
+                lockable.lock_many(['id=a', 'id=b'], timeout_s=1)
+            end = time.time()
+            self.assertTrue(end - start < 2 and end - start > 1)
+            self.assertTrue(os.path.exists(os.path.join(tmpdirname, 'a.pid')))
+            self.assertFalse(os.path.exists(os.path.join(tmpdirname, 'b.pid')))

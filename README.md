@@ -19,11 +19,16 @@ Resource is released in following cases:
 * allocation.unlock() is called
 * lockable.unlock(<allocation>) is called
 
+Resources data provider support following mechanisms:
+* `resources.json` file in file system
+* python list of dictionaries
+* http uri which points to API and is used with HTTP GET method. API should provide `resources.json` data as json object.
+
 # CLI interface
 
 ```
 % lockable --help
-usage: lockable [-h] [--lock-folder LOCK_FOLDER] [--resources RESOURCES]
+usage: lockable [-h] [--validate-only] [--lock-folder LOCK_FOLDER] [--resources RESOURCES]
                 [--timeout TIMEOUT] [--hostname HOSTNAME]
                 [--requirements REQUIREMENTS]
                 [command [command ...]]
@@ -36,10 +41,11 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --validate-only       Only validate resources.json
   --lock-folder LOCK_FOLDER
                         lock folder
   --resources RESOURCES
-                        Resources file
+                        Resources file (utf-8) or http uri
   --timeout TIMEOUT     Timeout for trying allocate suitable resource
   --hostname HOSTNAME   Hostname
   --requirements REQUIREMENTS
@@ -51,18 +57,28 @@ optional arguments:
 
 Constructor
 ```python
-lockable = Lockable([hostname], [resource_list_file], [lock_folder])
+lockable = Lockable([hostname], [resource_list_file], [resource_list], [lock_folder])
 ```
 
 Allocation
 ```python
-allocation = lockable.lock(requirements, [timeout_s])
-print(allocation.resource_info)
-print(allocation.resource_id)
-allocation.unlock()
+allocation_context = lockable.lock(requirements, [timeout_s])
+print(allocation_context.resource_info)
+print(allocation_context.resource_id)
+allocation_context.unlock()
 # or using resource info
-lockable.unlock(allocation)
+lockable.unlock(allocation_context)
 ```
+
+Allocation context contains following API:
+* `requirements: dict` Original requirements for allocation
+* `resource_info: dict` Allocated resource information
+* `unlock(): func`  release resource lock function
+* `allocation_queue_time: timedelta` How long waited before allocation
+* `allocation_start_time: datetime` when allocation was started
+* `release_time: datetime` when allocation was ended
+* `alloc_id: str` allocation id
+* `allocation_durations: timedelta` how long time allocation takes
 
 or using context manager which unlock automatically
 ```python
