@@ -186,7 +186,7 @@ class Lockable:
     def _get_requirements(requirements, hostname):
         """ Generate requirements"""
         MODULE_LOGGER.debug('hostname: %s', hostname)
-        merged = merge(dict(hostname=hostname, online=True), requirements)
+        merged = merge({'hostname': hostname, 'online': True}, requirements)
         allowed_to_del = ["online", "hostname"]
         for key in allowed_to_del:
             # allow to remove online requirement by set it to None
