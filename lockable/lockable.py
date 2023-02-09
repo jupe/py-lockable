@@ -125,6 +125,10 @@ class Lockable:
                 if index in fulfilled_requirement_indexes:
                     continue
                 for candidate in candidates:
+                    # Skip resources that are already allocated by same lockable instance.
+                    if candidate.get('id') in self._allocations:
+                        continue
+
                     try:
                         allocation = self._try_lock(req, candidate)
                         MODULE_LOGGER.debug('resource %s allocated (%s), alloc_id: (%s)',
@@ -182,7 +186,7 @@ class Lockable:
     def _get_requirements(requirements, hostname):
         """ Generate requirements"""
         MODULE_LOGGER.debug('hostname: %s', hostname)
-        merged = merge(dict(hostname=hostname, online=True), requirements)
+        merged = merge({'hostname': hostname, 'online': True}, requirements)
         allowed_to_del = ["online", "hostname"]
         for key in allowed_to_del:
             # allow to remove online requirement by set it to None
