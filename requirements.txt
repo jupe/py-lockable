@@ -1,4 +1,4 @@
-coverage==7.1.0
+coverage==7.2.0
 httptest==0.1.5
 mock==5.0.0
 pid==3.0.4
