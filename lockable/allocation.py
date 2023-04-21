@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from typing import Union
 from datetime import datetime, timedelta
 
+from pydash import filter_
+
 
 @dataclass
 class Allocation:
@@ -52,3 +54,20 @@ class Allocation:
         """
         end_time = self.release_time or datetime.now()
         return end_time - self.allocation_start_time
+
+    @staticmethod
+    def get_matching_resources(resource_list: [{}], requirements: {}) -> [{}]:
+        """ Get matching resources from resource list """
+        # if there is requirement key "has_xx: <bool>",
+        # make sure resource has that key if bool is True, or not if False
+        # and remove that key from requirements
+        for key, value in requirements.copy().items():
+            if key.startswith('has_'):
+                has_key = key.replace('has_', '')
+                if value:
+                    resource_list = [r for r in resource_list if has_key in r]
+                else:
+                    resource_list = [r for r in resource_list if has_key not in r]
+                requirements.pop(key)
+
+        return filter_(resource_list, requirements)

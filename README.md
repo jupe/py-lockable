@@ -88,5 +88,6 @@ with lockable.auto_lock(requirements, [timeout_s]) as allocation:
 
 **Tips:**
 
-You can allocate also offline devices by set requirements `"online": None` . 
-You can ignore also `hostname` same same way by  setting it to  None`
+* allocate also offline devices by set requirements `"online": None` . 
+* ignore also `hostname` same way by setting it to `None`
+* use `has_<key>: bool` to check if resource has given key. Useful for optional keys.
