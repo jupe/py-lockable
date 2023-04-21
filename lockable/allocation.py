@@ -58,16 +58,17 @@ class Allocation:
     @staticmethod
     def get_matching_resources(resource_list: [{}], requirements: {}) -> [{}]:
         """ Get matching resources from resource list """
-        # if there is requirement key "has_xx: <bool>",
-        # make sure resource has that key if bool is True, or not if False
-        # and remove that key from requirements
-        for key, value in requirements.copy().items():
-            if key.startswith('has_'):
-                has_key = key.replace('has_', '')
-                if value:
-                    resource_list = [r for r in resource_list if has_key in r]
-                else:
-                    resource_list = [r for r in resource_list if has_key not in r]
-                requirements.pop(key)
-
-        return filter_(resource_list, requirements)
+        # if there is {<field>: {$exists: true}} in requirements, filter out resources
+        # that does not have the field. if value is false, filter out resources that have the field.
+        def in_filter(resource):
+            """ Check if resource matches requirements """
+            for key, value in requirements.items():
+                if isinstance(value, dict) and '$exists' in value:
+                    if value['$exists'] and key not in resource:
+                        return False
+                    if not value['$exists'] and key in resource:
+                        return False
+                elif key not in resource or resource[key] != value:
+                    return False
+            return True
+        return filter_(resource_list, in_filter)
