@@ -49,3 +49,35 @@ class LockableTests(TestCase):
         requirements = {'field': {"$exists": False}}
         self.assertEqual([resource_list[1]],
                          Allocation.get_matching_resources(resource_list, requirements))
+
+    def test_get_matching_resources_with_in(self):
+        resource_list = [{'id': 1, 'name': 'resource1', 'field': '1'},
+                         {'id': 2, 'name': 'resource2', 'field': '2'},
+                         {'id': 3, 'name': 'resource3', 'field': '3'}]
+        requirements = {'field': {"$in": ['1', '3']}}
+        self.assertEqual([resource_list[0], resource_list[2]],
+                         Allocation.get_matching_resources(resource_list, requirements))
+
+    def test_get_matching_resources_without_in(self):
+        resource_list = [{'id': 1, 'name': 'resource1', 'field': '1'},
+                         {'id': 2, 'name': 'resource2', 'field': '2'},
+                         {'id': 3, 'name': 'resource3', 'field': '3'}]
+        requirements = {'field': {"$in": []}}
+        self.assertEqual([],
+                         Allocation.get_matching_resources(resource_list, requirements))
+
+    def test_get_matching_resources_with_nin(self):
+        resource_list = [{'id': 1, 'name': 'resource1', 'field': '1'},
+                         {'id': 2, 'name': 'resource2', 'field': '2'},
+                         {'id': 3, 'name': 'resource3', 'field': '3'}]
+        requirements = {'field': {"$nin": ['1', '3']}}
+        self.assertEqual([resource_list[1]],
+                         Allocation.get_matching_resources(resource_list, requirements))
+
+    def test_get_matching_resources_without_nin(self):
+        resource_list = [{'id': 1, 'name': 'resource1', 'field': '1'},
+                         {'id': 2, 'name': 'resource2', 'field': '2'},
+                         {'id': 3, 'name': 'resource3', 'field': '3'}]
+        requirements = {'field': {"$nin": []}}
+        self.assertEqual(resource_list,
+                         Allocation.get_matching_resources(resource_list, requirements))

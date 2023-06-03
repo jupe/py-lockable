@@ -63,11 +63,23 @@ class Allocation:
         def in_filter(resource):
             """ Check if resource matches requirements """
             for key, value in requirements.items():
-                if isinstance(value, dict) and '$exists' in value:
-                    if value['$exists'] and key not in resource:
-                        return False
-                    if not value['$exists'] and key in resource:
-                        return False
+                if isinstance(value, dict):
+                    # check that dictionary contains only accepted keys
+                    accepted_keys = ['$exists', '$in', '$nin']
+                    for k in value.keys():
+                        assert k in accepted_keys, f'Unsupported key: {k} in {value}'
+
+                    if '$exists' in value:
+                        exists = value['$exists']
+                        # if exists is true, filter out resources that does not have the field
+                        # if exists is false, filter out resources that have the field
+                        return exists == (key in resource)
+                    if '$in' in value:
+                        if resource[key] not in value['$in']:
+                            return False
+                    if '$nin' in value:
+                        if resource[key] in value['$nin']:
+                            return False
                 elif key not in resource or resource[key] != value:
                     return False
             return True
