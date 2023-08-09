@@ -250,7 +250,9 @@ class Lockable:
         reservation.release(allocation.alloc_id)
 
     @contextmanager
-    def auto_lock(self, requirements: (str or dict), timeout_s: int = DEFAULT_TIMEOUT) -> Allocation:
+    def auto_lock(self, 
+                  requirements: (str or dict), 
+                  timeout_s: int = DEFAULT_TIMEOUT) -> Allocation:
         """
         contextmanaged lock method. Resource is released automatically after context ends.
         :param requirements: requirements
