@@ -56,7 +56,7 @@ setup(
         'httptest'
     ],
     extras_require={
-        'dev': ['nose', 'coveralls', 'pylint', 'coverage', 'mock'],
+        'dev': ['pynose', 'coveralls', 'pylint', 'coverage', 'mock'],
         'optional': ['pytest-metadata']
     },
 
