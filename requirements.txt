@@ -6,4 +6,4 @@ pydash==5.1.2
 requests==2.28.2
 setuptools-scm==7.1.0
 urllib3==1.26.13
-setuptools~=67.7.2
+setuptools~=68.1.2
