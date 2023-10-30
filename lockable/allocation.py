@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from typing import Union
 from datetime import datetime, timedelta
 
-from pydash import filter_
-
 
 @dataclass
 class Allocation:
@@ -54,33 +52,3 @@ class Allocation:
         """
         end_time = self.release_time or datetime.now()
         return end_time - self.allocation_start_time
-
-    @staticmethod
-    def get_matching_resources(resource_list: [{}], requirements: {}) -> [{}]:
-        """ Get matching resources from resource list """
-        # if there is {<field>: {$exists: true}} in requirements, filter out resources
-        # that does not have the field. if value is false, filter out resources that have the field.
-        def in_filter(resource):
-            """ Check if resource matches requirements """
-            for key, value in requirements.items():
-                if isinstance(value, dict):
-                    # check that dictionary contains only accepted keys
-                    accepted_keys = ['$exists', '$in', '$nin']
-                    for k in value.keys():
-                        assert k in accepted_keys, f'Unsupported key: {k} in {value}'
-
-                    if '$exists' in value:
-                        exists = value['$exists']
-                        # if exists is true, filter out resources that does not have the field
-                        # if exists is false, filter out resources that have the field
-                        return exists == (key in resource)
-                    if '$in' in value:
-                        if resource[key] not in value['$in']:
-                            return False
-                    if '$nin' in value:
-                        if resource[key] in value['$nin']:
-                            return False
-                elif key not in resource or resource[key] != value:
-                    return False
-            return True
-        return filter_(resource_list, in_filter)
