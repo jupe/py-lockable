@@ -33,4 +33,9 @@ class TestFlattenJson(unittest.TestCase):
     def test_flatten_list_mixed(self):
         data = [{"a": 1, "b": 2}, {"a": {"b": {"c": 2}}}]
         result = flatten_list(data)
-        self.assertEqual(result, [{'a': 1, 'b': 2},{ 'a.b.c': 2}])
+        self.assertEqual(result, [{'a': 1, 'b': 2}, {'a.b.c': 2}])
+
+    def test_raise_if_overlapping_subfield(self):
+        data = {"a": {"b": 1}, "a.b": 2}
+        with self.assertRaises(AssertionError):
+            flatten_json(data)

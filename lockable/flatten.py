@@ -21,6 +21,8 @@ def flatten_json(data: dict, parent_key='', sep='.') -> dict:
         if isinstance(value, dict):
             items.update(flatten_json(value, new_key, sep=sep))
         else:
+            # ensure that the key doesn't overwrite an existing key
+            assert new_key not in items, f"Key {new_key} already exists in items"
             items[new_key] = value
     return items
 
