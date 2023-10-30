@@ -17,7 +17,7 @@ class ProviderFile(Provider):
         ProviderFile constructor
         :param uri: file path
         """
-        MODULE_LOGGER.debug(f'Creating ProviderFile using {uri}')
+        MODULE_LOGGER.debug('Creating ProviderFile using %s', uri)
         self._resource_list_file_mtime = None
         super().__init__(uri)
 
