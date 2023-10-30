@@ -5,8 +5,6 @@ from pydash import filter_
 
 def get_matching_resources(resource_list: [{}], requirements: {}) -> [{}]:
     """ Get matching resources from resource list """
-    # if there is {<field>: {$exists: true}} in requirements, filter out resources
-    # that does not have the field. if value is false, filter out resources that have the field.
     def in_filter(resource: dict):
         """ Check if resource matches requirements """
         for key, value in requirements.items():

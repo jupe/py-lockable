@@ -91,3 +91,6 @@ with lockable.auto_lock(requirements, [timeout_s]) as allocation:
 * allocate also offline devices by set requirements `"online": None` . 
 * ignore also `hostname` same way by setting it to `None`
 * use `<key>: {$exists: <bool>}` to check if resource has given key. Useful for optional keys.
+* use `<key>: {$in: ["a", "b"]}` to check if resource has given key and value is in given list. Useful for optional keys.
+* use `<key>: {$nin: ["a", "b"]}` to check if resource has given key and value is not in given list. Useful for optional keys.
+* use `<key>: {$regex: ".*"}` to check if resource has given key and value matches given regex. Useful for optional keys.
