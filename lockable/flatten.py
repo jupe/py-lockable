@@ -1,3 +1,8 @@
+"""
+Helper functions for flattening nested dictionaries.
+"""
+
+
 def flatten_json(data: dict, parent_key='', sep='.') -> dict:
     """
     Flatten a nested dictionary.
@@ -11,13 +16,15 @@ def flatten_json(data: dict, parent_key='', sep='.') -> dict:
     - dict: The flattened dictionary.
     """
     items = {}
-    for k, v in data.items():
-        new_key = f"{parent_key}{sep}{k}" if parent_key else k
-        if isinstance(v, dict):
-            items.update(flatten_json(v, new_key, sep=sep))
+    for key, value in data.items():
+        new_key = f"{parent_key}{sep}{key}" if parent_key else key
+        if isinstance(value, dict):
+            items.update(flatten_json(value, new_key, sep=sep))
         else:
-            items[new_key] = v
+            items[new_key] = value
     return items
 
+
 def flatten_list(array: list) -> list:
+    """ Flatten a list of dictionaries """
     return list(map(flatten_json, array))
