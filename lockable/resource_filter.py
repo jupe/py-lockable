@@ -1,3 +1,5 @@
+""" Resource filter module """
+
 import re
 
 from pydash import filter_
