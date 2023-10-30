@@ -8,12 +8,13 @@ import socket
 import time
 import tempfile
 
-from pydash import filter_, merge
+from pydash import merge
 from pid import PidFile, PidFileError
 
 from lockable.allocation import Allocation
 from lockable.logger import get_logger
 from lockable.provider_helpers import create as create_provider
+from lockable.resource_filter import get_matching_resources
 
 MODULE_LOGGER = get_logger()
 DEFAULT_TIMEOUT=1000
@@ -163,7 +164,7 @@ class Lockable:
 
     def _lock(self, requirements, timeout_s, retry_interval=1) -> Allocation:
         """ Lock resource """
-        local_resources = filter_(self.resource_list, requirements)
+        local_resources = get_matching_resources(self.resource_list, requirements)
         random.shuffle(local_resources)
         ResourceNotFound.invariant(local_resources, "Suitable resource not available")
         return self._lock_some(requirements, local_resources, timeout_s, retry_interval)[0]
@@ -172,7 +173,7 @@ class Lockable:
         """ Lock resource """
         local_resources = []
         for req in requirements:
-            resources = filter_(self.resource_list, req)
+            resources = get_matching_resources(self.resource_list, req)
             ResourceNotFound.invariant(resources, "Suitable resource not available")
             local_resources += resources
         # Unique resources by id
