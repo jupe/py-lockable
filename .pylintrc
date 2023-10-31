@@ -19,7 +19,7 @@ ignore-patterns=
 
 # Use multiple processes to speed up Pylint. Specifying 0 will auto-detect the
 # number of processors available to use.
-jobs=1
+jobs=0
 
 # Control the amount of potential inferred values when inferring a single
 # object. This can help the performance when dealing with large functions or
@@ -250,7 +250,6 @@ max-line-length=100
 
 # Maximum number of lines in a module.
 max-module-lines=1000
-
 
 # Allow the body of a class to be on the same line as the declaration if body
 # contains single statement.
@@ -487,4 +486,3 @@ max-statements=50
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=2
-
