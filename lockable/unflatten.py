@@ -20,6 +20,10 @@ def unflatten(input_dict: Dict[str, Any]) -> Dict[str, Any]:
     """
     result = {}
     for key, value in input_dict.items():
+        if not isinstance(key, str):
+            raise ValueError(f"Invalid key type: {type(key)}")
+        if key.startswith('.') or key.endswith('.') or '..' in key:
+            raise ValueError(f"Invalid key format: {key}")
         keys = key.split(".")
         temp = result
         for k in keys[:-1]:
