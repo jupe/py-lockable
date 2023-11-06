@@ -1,3 +1,6 @@
+""" Convert a flat dictionary with dot-separated keys into a nested dictionary.
+"""
+
 from typing import Any, Dict
 
 
