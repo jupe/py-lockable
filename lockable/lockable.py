@@ -57,17 +57,8 @@ class Lockable:
         return self._provider.data
 
     @staticmethod
-    def parse_requirements(requirements_str: (str or dict)) -> dict:
-        """ Parse requirements """
-        if not requirements_str:
-            return {}
-        if isinstance(requirements_str, dict):
-            return requirements_str
-        try:
-            return json.loads(requirements_str)
-        except json.decoder.JSONDecodeError as error:
-            if error.colno > 1:
-                raise ValueError(str(error)) from error
+    def parse_str_requirements(requirements_str: str) -> dict:
+        """ Parse string requirements """
         parts = requirements_str.split('&')
         requirements = {}
         for part in parts:
@@ -84,6 +75,20 @@ class Lockable:
                 value = False
             requirements[key] = value
         return requirements
+
+    @staticmethod
+    def parse_requirements(requirements_str: (str or dict)) -> dict:
+        """ Parse requirements """
+        if not requirements_str:
+            return {}
+        if isinstance(requirements_str, dict):
+            return requirements_str
+        try:
+            return json.loads(requirements_str)
+        except json.decoder.JSONDecodeError as error:
+            if error.colno > 1:
+                raise ValueError(str(error)) from error
+        return Lockable.parse_str_requirements(requirements_str)
 
     def _try_lock(self, requirements, candidate):
         """ Function that tries to lock given candidate resource """
