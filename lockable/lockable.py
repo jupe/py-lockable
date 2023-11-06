@@ -14,6 +14,7 @@ from pid import PidFile, PidFileError
 from lockable.allocation import Allocation
 from lockable.logger import get_logger
 from lockable.provider_helpers import create as create_provider
+from lockable.unflatten import unflatten
 
 MODULE_LOGGER = get_logger()
 DEFAULT_TIMEOUT=1000
@@ -57,17 +58,8 @@ class Lockable:
         return self._provider.data
 
     @staticmethod
-    def parse_requirements(requirements_str: (str or dict)) -> dict:
-        """ Parse requirements """
-        if not requirements_str:
-            return {}
-        if isinstance(requirements_str, dict):
-            return requirements_str
-        try:
-            return json.loads(requirements_str)
-        except json.decoder.JSONDecodeError as error:
-            if error.colno > 1:
-                raise ValueError(str(error)) from error
+    def parse_str_requirements(requirements_str: str) -> dict:
+        """ Parse string requirements """
         parts = requirements_str.split('&')
         requirements = {}
         for part in parts:
@@ -83,7 +75,23 @@ class Lockable:
             elif value.lower() == "false":
                 value = False
             requirements[key] = value
-        return requirements
+        return unflatten(requirements)
+
+    @staticmethod
+    def parse_requirements(requirements_str: (str or dict)) -> dict:
+        """ Parse requirements """
+        if not requirements_str:
+            return {}
+        if isinstance(requirements_str, dict):
+            return requirements_str
+        try:
+            return json.loads(requirements_str)
+        except json.decoder.JSONDecodeError as error:
+            # if the first char is not {, try to parse as string requirements
+            if error.colno > 1:
+                # expecting requirements_str to be a json format
+                raise ValueError(str(error)) from error
+        return Lockable.parse_str_requirements(requirements_str)
 
     def _try_lock(self, requirements, candidate):
         """ Function that tries to lock given candidate resource """
