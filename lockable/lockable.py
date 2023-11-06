@@ -14,6 +14,7 @@ from pid import PidFile, PidFileError
 from lockable.allocation import Allocation
 from lockable.logger import get_logger
 from lockable.provider_helpers import create as create_provider
+from lockable.unflatten import unflatten
 
 MODULE_LOGGER = get_logger()
 DEFAULT_TIMEOUT=1000
@@ -74,7 +75,7 @@ class Lockable:
             elif value.lower() == "false":
                 value = False
             requirements[key] = value
-        return requirements
+        return unflatten(requirements)
 
     @staticmethod
     def parse_requirements(requirements_str: (str or dict)) -> dict:
