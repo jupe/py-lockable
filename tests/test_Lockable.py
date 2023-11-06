@@ -126,11 +126,17 @@ class LockableTests(TestCase):
         self.assertEqual(Lockable.parse_requirements('a=b&c=d'), {"a": "b", "c": "d"})
         self.assertEqual(Lockable.parse_requirements('{"a":"b","c":"d"}'), {"a": "b", "c": "d"})
         with self.assertRaises(ValueError):
+            Lockable.parse_requirements('{')
+        with self.assertRaises(AssertionError):
+            Lockable.parse_requirements(1)
+        with self.assertRaises(ValueError):
             Lockable.parse_requirements('a')
         with self.assertRaises(ValueError):
             Lockable.parse_requirements('a=')
         with self.assertRaises(ValueError):
             Lockable.parse_requirements('{"a":"b","c":"d}')
+        with self.assertRaises(ValueError):
+            Lockable.parse_requirements('{\na=b}')
 
     def test_lock_resource_not_found(self):
         with create_lockable([]) as lockable:

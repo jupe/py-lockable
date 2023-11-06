@@ -84,12 +84,12 @@ class Lockable:
             return {}
         if isinstance(requirements_str, dict):
             return requirements_str
-        try:
-            return json.loads(requirements_str)
-        except json.decoder.JSONDecodeError as error:
-            # if the first char is not {, try to parse as string requirements
-            if error.colno > 1:
-                # expecting requirements_str to be a json format
+        assert isinstance(requirements_str, str), 'requirements must be string or dict'
+        requirements_str = requirements_str.strip()  # remove leading and trailing spaces
+        if requirements_str.startswith('{'):
+            try:
+                return json.loads(requirements_str)
+            except json.decoder.JSONDecodeError as error:
                 raise ValueError(str(error)) from error
         return Lockable.parse_str_requirements(requirements_str)
 
