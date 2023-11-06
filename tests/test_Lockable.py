@@ -131,6 +131,8 @@ class LockableTests(TestCase):
             Lockable.parse_requirements('a=')
         with self.assertRaises(ValueError):
             Lockable.parse_requirements('{"a":"b","c":"d}')
+        with self.assertRaises(ValueError):
+            Lockable.parse_requirements('{\na=b}')
 
     def test_lock_resource_not_found(self):
         with create_lockable([]) as lockable:

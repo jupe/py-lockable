@@ -88,7 +88,7 @@ class Lockable:
             return json.loads(requirements_str)
         except json.decoder.JSONDecodeError as error:
             # if the first char is not {, try to parse as string requirements
-            if error.colno > 1:
+            if error.pos > 1:
                 # expecting requirements_str to be a json format
                 raise ValueError(str(error)) from error
         return Lockable.parse_str_requirements(requirements_str)
