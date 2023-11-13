@@ -1,5 +1,5 @@
 coverage==7.3.2
-httptest==0.1.6
+httptest==0.2.0
 mock==5.1.0
 pid==3.0.4
 pydash==7.0.6
