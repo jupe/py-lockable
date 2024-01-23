@@ -280,3 +280,16 @@ class LockableTests(TestCase):
             self.assertTrue(end - start < 2 and end - start > 1)
             self.assertTrue(os.path.exists(os.path.join(tmpdirname, 'a.pid')))
             self.assertFalse(os.path.exists(os.path.join(tmpdirname, 'b.pid')))
+
+    def test_lock_nested(self):
+        with TemporaryDirectory() as tmpdirname:
+            resources = [
+                {"id": "a", "hostname": "myhost", "online": True, "a": 2},
+                {"id": "b", "hostname": "myhost", "online": True, "a": {"b": 2}}
+            ]
+
+            lockable = Lockable(hostname='myhost', resource_list=resources, lock_folder=tmpdirname)
+            resource = lockable.lock({"a.b": 2})
+            self.assertEqual(resource.resource_id, 'b')
+            self.assertEqual(resource.resource_info,
+                {"id": "b", "hostname": "myhost", "online": True, "a.b": 2})

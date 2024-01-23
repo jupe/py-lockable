@@ -6,6 +6,7 @@ from typing import List
 
 from pydash import filter_, count_by
 
+from lockable.flatten import flatten_list
 from lockable.logger import get_logger
 
 MODULE_LOGGER = get_logger()
@@ -26,7 +27,7 @@ class Provider(ABC):
     @property
     def data(self) -> list:
         """ Get resources list """
-        return self._resources
+        return flatten_list(self._resources)
 
     @abstractmethod
     def reload(self) -> None:  # pragma: no cover
