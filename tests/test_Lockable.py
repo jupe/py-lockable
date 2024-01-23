@@ -83,8 +83,8 @@ class LockableTests(TestCase):
     def test_lock_require_resources_json_loaded(self):
         lockable = Lockable()
         with self.assertRaises(ResourceNotFound) as error:
-            lockable.lock({})
-        self.assertEqual(str(error.exception), 'Suitable resource not available')
+            lockable.lock({"hostname"="test"})
+        self.assertEqual(str(error.exception), "Suitable resource not available, requirements={'hostname': 'test', 'online': True}")
 
     def test_constructor_file_not_found(self):
         with TemporaryDirectory() as tmpdirname:
