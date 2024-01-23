@@ -173,7 +173,7 @@ class Lockable:
         """ Lock resource """
         local_resources = filter_(self.resource_list, requirements)
         random.shuffle(local_resources)
-        ResourceNotFound.invariant(local_resources, 
+        ResourceNotFound.invariant(local_resources,
                                    f"Suitable resource not available, {requirements=}")
         return self._lock_some(requirements, local_resources, timeout_s, retry_interval)[0]
 
@@ -182,13 +182,13 @@ class Lockable:
         local_resources = []
         for req in requirements:
             resources = filter_(self.resource_list, req)
-            ResourceNotFound.invariant(resources, 
+            ResourceNotFound.invariant(resources,
                                        f"Suitable resource not available, {requirements=}")
             local_resources += resources
         # Unique resources by id
         local_resources = list({v['id']: v for v in local_resources}.values())
         ResourceNotFound.invariant(
-            len(local_resources) >= len(requirements), 
+            len(local_resources) >= len(requirements),
             f"Suitable resource not available, {requirements=}")
         random.shuffle(local_resources)
         return self._lock_some(requirements, local_resources, timeout_s, retry_interval)
