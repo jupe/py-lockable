@@ -43,7 +43,7 @@ setup(
     ],
     packages=find_packages(exclude=['tests']),
     keywords="py.test pytest lockable resource",
-    python_requires='>=3.7, <4',
+    python_requires='>=3.8, <4',
     entry_points={
         'console_scripts': [
             'lockable = lockable.cli:main'
