@@ -17,7 +17,7 @@ class RetryWithLogging(Retry):
     def increment(self, *args, **kwargs):
         try:
             error = kwargs['error']
-            MODULE_LOGGER.warning('retried http resources GET due to %s', error)
+            MODULE_LOGGER.warning(f'retried http resources GET due to {error}')
         except KeyError:
             pass
 
@@ -33,7 +33,7 @@ class ProviderHttp(Provider):
 
     def __init__(self, uri: str):
         """ ProviderHttp constructor """
-        MODULE_LOGGER.debug('Creating ProviderHTTP using %s', uri)
+        MODULE_LOGGER.debug(f'Creating ProviderHTTP using {uri}')
         self._configure_http_strategy(uri)
         super().__init__(uri)
 
@@ -82,14 +82,14 @@ class ProviderHttp(Provider):
             # access JSON content
             return response.json()
         except HTTPError as http_err:
-            MODULE_LOGGER.error('HTTP error occurred %s', http_err)
+            MODULE_LOGGER.error(f'HTTP error occurred {http_err}')
             raise ProviderError(http_err.response.reason) from http_err
         except RequestConnectionError as error:
-            MODULE_LOGGER.error('Connection error: %s', error)
+            MODULE_LOGGER.error(f'Connection error: {error}')
             raise ProviderError(error) from error
         except MaxRetryError as error:
-            MODULE_LOGGER.error('Max retries error: %s', error)
+            MODULE_LOGGER.error(f'Max retries error: {error}')
             raise ProviderError(error) from error
         except Exception as error:
-            MODULE_LOGGER.error('Other error occurred: %s', error)
+            MODULE_LOGGER.error(f'Other error occurred: {error}')
             raise ProviderError(error) from error
