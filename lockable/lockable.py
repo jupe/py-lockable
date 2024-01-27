@@ -32,7 +32,7 @@ class ResourceNotFound(Exception):
 
 class Lockable:
     """
-    Base class for Lockable. It handle low-level functionality.
+    Base class for Lockable. It handles low-level functionality.
     """
 
     def __init__(self,
@@ -44,6 +44,7 @@ class Lockable:
         MODULE_LOGGER.debug('Initialized lockable')
         self._hostname = hostname
         self._lock_folder = lock_folder
+        MODULE_LOGGER.debug(f"Use lock folder: {self._lock_folder}")
         assert not (isinstance(resource_list, list) and
                     resource_list_file), 'only one of resource_list or ' \
                                          'resource_list_file is accepted, not both'
@@ -98,15 +99,14 @@ class Lockable:
         resource_id = candidate.get("id")
         try:
             pid_file = f"{resource_id}.pid"
-            MODULE_LOGGER.debug('Trying lock using: %s', os.path.join(self._lock_folder, pid_file))
-
+            MODULE_LOGGER.debug(f'Trying lock using: {os.path.join(self._lock_folder, pid_file)}')
             _lockable = PidFile(pidname=pid_file, piddir=self._lock_folder)
             _lockable.create()
-            MODULE_LOGGER.info('Allocated: %s, lockfile: %s', resource_id, pid_file)
+            MODULE_LOGGER.info(f'Allocated: {resource_id}, lockfile: {pid_file}')
 
             def release():
                 nonlocal self, resource_id, _lockable
-                MODULE_LOGGER.info('Release resource: %s', resource_id)
+                MODULE_LOGGER.info(f'Release resource: {resource_id}')
                 _lockable.close()
                 del self._allocations[resource_id]
 
@@ -119,8 +119,8 @@ class Lockable:
 
     def _lock_some(self, requirements, candidates, timeout_s, retry_interval):
         """ Contextmanager that lock some candidate that is free and release it finally """
-        MODULE_LOGGER.debug('Total match local resources: %d, timeout: %d',
-                            len(candidates), timeout_s)
+        MODULE_LOGGER.debug(f'Total match local resources: {len(candidates)}, '
+                            f'timeout: {timeout_s}s')
         if not isinstance(requirements, list):
             requirements = [requirements]
         abort_after = timeout_s
@@ -139,10 +139,9 @@ class Lockable:
 
                     try:
                         allocation = self._try_lock(req, candidate)
-                        MODULE_LOGGER.debug('resource %s allocated (%s), alloc_id: (%s)',
-                                            allocation.resource_id,
-                                            json.dumps(allocation.resource_info),
-                                            allocation.alloc_id)
+                        MODULE_LOGGER.debug(f'resource {allocation.resource_id} '
+                                            f'allocated ({json.dumps(allocation.resource_info)}), '
+                                            f'alloc_id: ({allocation.alloc_id})')
                         self._allocations[allocation.resource_id] = allocation
                         current_allocations.append(allocation)
                         fulfilled_requirement_indexes.append(index)
@@ -196,7 +195,7 @@ class Lockable:
     @staticmethod
     def _get_requirements(requirements, hostname):
         """ Generate requirements"""
-        MODULE_LOGGER.debug('hostname: %s', hostname)
+        MODULE_LOGGER.debug(f'hostname: {hostname}')
         merged = merge({'hostname': hostname, 'online': True}, requirements)
         allowed_to_del = ["online", "hostname"]
         for key in allowed_to_del:
@@ -218,9 +217,8 @@ class Lockable:
         # Refresh resources data
         self._provider.reload()
         begin = datetime.now()
-        MODULE_LOGGER.debug("Use lock folder: %s", self._lock_folder)
-        MODULE_LOGGER.debug("Requirements: %s", json.dumps(predicate))
-        MODULE_LOGGER.debug("Resource list: %s", json.dumps(self.resource_list))
+        MODULE_LOGGER.debug(f"Requirements: {json.dumps(predicate)}")
+        MODULE_LOGGER.debug(f"Resource list: {json.dumps(self.resource_list)}")
         allocation = self._lock(predicate, timeout_s)
         allocation.allocation_queue_time = datetime.now() - begin
         return allocation
@@ -238,9 +236,8 @@ class Lockable:
             predicates.append(self._get_requirements(self.parse_requirements(req), self._hostname))
         self._provider.reload()
         begin = datetime.now()
-        MODULE_LOGGER.debug("Use lock folder: %s", self._lock_folder)
-        MODULE_LOGGER.debug("Requirements: %s", json.dumps(predicates))
-        MODULE_LOGGER.debug("Resource list: %s", json.dumps(self.resource_list))
+        MODULE_LOGGER.debug(f"Requirements: {json.dumps(predicates)}")
+        MODULE_LOGGER.debug(f"Resource list: {json.dumps(self.resource_list)}")
 
         allocations = self._lock_many(predicates, timeout_s)
         for allocation in allocations:
@@ -254,9 +251,10 @@ class Lockable:
         :return: None
         """
         assert 'id' in allocation.resource_info, 'missing "id" -key'
-        MODULE_LOGGER.info('Release: %s', allocation.resource_id)
+        MODULE_LOGGER.info(f'Release: {allocation.resource_id}')
         resource_id = allocation.resource_id
-        ResourceNotFound.invariant(resource_id in self._allocations, 'resource not locked')
+        ResourceNotFound.invariant(resource_id in self._allocations,
+                                   'resource not locked')
         reservation = self._allocations[resource_id]
         reservation.release(allocation.alloc_id)
 

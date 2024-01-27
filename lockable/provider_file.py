@@ -17,14 +17,14 @@ class ProviderFile(Provider):
         ProviderFile constructor
         :param uri: file path
         """
-        MODULE_LOGGER.debug('Creating ProviderFile using %s', uri)
+        MODULE_LOGGER.debug(f'Creating ProviderFile using {uri}')
         self._resource_list_file_mtime = None
         super().__init__(uri)
 
     def reload(self):
         """ Load resources list file"""
         self.reload_resource_list_file()
-        MODULE_LOGGER.warning('Use resources from %s file', self._uri)
+        MODULE_LOGGER.warning(f'Use resources from {self._uri} file')
 
     def reload_resource_list_file(self):
         """ Reload resources from file if file has been modified """
@@ -37,7 +37,7 @@ class ProviderFile(Provider):
     @staticmethod
     def _read_resources_list_file(filename: str) -> List[dict]:
         """ Read resources json file """
-        MODULE_LOGGER.debug('Read resource list file: %s', filename)
+        MODULE_LOGGER.debug(f'Read resource list file: {filename}')
         with open(filename, encoding="utf-8") as json_file:
             try:
                 data = json.load(json_file)

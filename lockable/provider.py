@@ -1,6 +1,5 @@
 """ Provider library """
 from abc import ABC, abstractmethod
-import json
 import typing
 from typing import List
 
@@ -37,9 +36,6 @@ class Provider(ABC):
         assert isinstance(resources_list, list), 'resources_list is not an list'
         Provider._validate_json(resources_list)
         self._resources = resources_list
-        MODULE_LOGGER.debug('Resources loaded: ')
-        for resource in self._resources:
-            MODULE_LOGGER.debug(json.dumps(resource))
 
     @staticmethod
     def _validate_json(data: List[dict]):
@@ -51,5 +47,5 @@ class Provider(ABC):
 
         duplicates = filter_(counts.keys(), lambda key: counts[key] > 1)
         if duplicates:
-            MODULE_LOGGER.warning('Duplicates: %s', duplicates)
+            MODULE_LOGGER.warning(f'Duplicates: {duplicates}')
             raise ValueError(f"Invalid json, duplicate ids in {duplicates}")
