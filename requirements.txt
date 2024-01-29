@@ -2,7 +2,7 @@ coverage==7.4.0
 httptest==2.1.1
 mock==5.1.0
 pid==3.0.4
-pydash==7.0.6
+pydash==7.0.7
 requests==2.31.0
 setuptools-scm==8.0.4
 urllib3==2.1.0
