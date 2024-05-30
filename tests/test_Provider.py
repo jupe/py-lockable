@@ -163,3 +163,9 @@ class ProviderTests(TestCase):
         ProviderHttp.BACKOFF_FACTOR = 0
         with self.assertRaises(ProviderError):
             create_provider('http://localhost/resource')
+
+    def test_provider_nested_resources(self):
+        nested_resource = {"id": 12, "a": {"b": 2}}
+        flatten_resource = {"a.b": 2, "id": 12}
+        provider = create_provider([nested_resource])
+        self.assertEqual([flatten_resource], provider.data)
