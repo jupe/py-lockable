@@ -1,14 +1,13 @@
 """ Provider library """
 from abc import ABC, abstractmethod
 import json
+import logging
 import typing
 from typing import List
 
 from pydash import filter_, count_by
 
-from lockable.logger import get_logger
-
-MODULE_LOGGER = get_logger()
+MODULE_LOGGER = logging.getLogger(__name__)
 
 
 class ProviderError(Exception):

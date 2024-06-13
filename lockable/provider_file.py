@@ -1,12 +1,12 @@
 """ resources Provider for file """
 import json
+import logging
 import os
 from typing import List
 
 from lockable.provider import Provider
-from lockable.logger import get_logger
 
-MODULE_LOGGER = get_logger()
+MODULE_LOGGER = logging.getLogger(__name__)
 
 
 class ProviderFile(Provider):

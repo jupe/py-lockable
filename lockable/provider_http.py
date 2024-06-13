@@ -1,4 +1,6 @@
 """ resources Provider for HTTP """
+import logging
+
 import requests
 from requests import HTTPError, ConnectionError as RequestConnectionError
 from requests.adapters import HTTPAdapter
@@ -7,9 +9,8 @@ from urllib3.util import parse_url
 from urllib3.exceptions import MaxRetryError
 
 from lockable.provider import Provider, ProviderError
-from lockable.logger import get_logger
 
-MODULE_LOGGER = get_logger()
+MODULE_LOGGER = logging.getLogger(__name__)
 
 
 class RetryWithLogging(Retry):

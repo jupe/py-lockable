@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 from datetime import datetime
 import json
+import logging
 import os
 import random
 import socket
@@ -12,12 +13,11 @@ from pydash import filter_, merge
 from pid import PidFile, PidFileError
 
 from lockable.allocation import Allocation
-from lockable.logger import get_logger
 from lockable.provider_helpers import create as create_provider
 from lockable.unflatten import unflatten
 
-MODULE_LOGGER = get_logger()
-DEFAULT_TIMEOUT=1000
+MODULE_LOGGER = logging.getLogger(__name__)
+DEFAULT_TIMEOUT = 1000
 
 
 class ResourceNotFound(Exception):

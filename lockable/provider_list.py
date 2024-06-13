@@ -1,8 +1,9 @@
 """ resources Provider for static list """
-from lockable.logger import get_logger
+import logging
+
 from lockable.provider import Provider
 
-MODULE_LOGGER = get_logger()
+MODULE_LOGGER = logging.getLogger(__name__)
 
 
 class ProviderList(Provider):
