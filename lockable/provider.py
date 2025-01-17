@@ -6,6 +6,7 @@ import typing
 from typing import List
 
 from pydash import filter_, count_by
+from lockable.lockable import log_with_group
 
 MODULE_LOGGER = logging.getLogger(__name__)
 
@@ -36,9 +37,8 @@ class Provider(ABC):
         assert isinstance(resources_list, list), 'resources_list is not an list'
         Provider._validate_json(resources_list)
         self._resources = resources_list
-        MODULE_LOGGER.debug('Resources loaded: ')
-        for resource in self._resources:
-            MODULE_LOGGER.debug(json.dumps(resource))
+        
+        log_with_group(MODULE_LOGGER, 'Resources loaded:', json.dumps(self._resources, indent=2))
 
     @staticmethod
     def _validate_json(data: List[dict]):
@@ -50,5 +50,5 @@ class Provider(ABC):
 
         duplicates = filter_(counts.keys(), lambda key: counts[key] > 1)
         if duplicates:
-            MODULE_LOGGER.warning('Duplicates: %s', duplicates)
+            log_with_group(MODULE_LOGGER, f'Duplicates: {duplicates}')
             raise ValueError(f"Invalid json, duplicate ids in {duplicates}")
