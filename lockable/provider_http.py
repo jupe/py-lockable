@@ -8,6 +8,8 @@ from urllib3.util.retry import Retry
 from urllib3.util import parse_url
 from urllib3.exceptions import MaxRetryError
 
+from lockable.provider import Provider, ProviderError
+
 try:
     from importlib.metadata import version as pkg_version, PackageNotFoundError
 except ImportError:  # pragma: no cover - fallback for older Python
@@ -19,8 +21,6 @@ except PackageNotFoundError:  # pragma: no cover - package not installed
     _MAJOR_VERSION = '0'
 
 _USER_AGENT = f'py-lockable/v{_MAJOR_VERSION}'
-
-from lockable.provider import Provider, ProviderError
 
 MODULE_LOGGER = logging.getLogger(__name__)
 
