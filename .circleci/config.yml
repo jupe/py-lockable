@@ -8,10 +8,6 @@ workflows:
   version: 2
   test:
     jobs:
-      - test-38:
-          filters:
-            tags:
-              only: /.*/
       - test-39:
           filters:
             tags:
@@ -20,11 +16,15 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - test-312:
+          filters:
+            tags:
+              only: /.*/
       - deploy:
           requires:
             - test-310
             - test-39
-            - test-38
+            - test-312
           filters:
             tags:
               only: /^v.*/
@@ -53,9 +53,9 @@ commands:
           key: deps1-{{ .Branch }}-{{ checksum "setup.py" }}
 
 jobs:
-  test-38: &test-template
+  test-39: &test-template
     docker:
-      - image: circleci/python:3.8
+      - image: circleci/python:3.9
     working_directory: ~/lockable
     steps:
       - setup
@@ -79,16 +79,16 @@ jobs:
           path: junit
       - store_artifacts:
           path: junit
-          destination: juni
+          destination: junit
 
-  test-39:
-    <<: *test-template
-    docker:
-    - image: circleci/python:3.9
   test-310:
     <<: *test-template
     docker:
-    - image: circleci/python:3.10
+      - image: circleci/python:3.10
+  test-312:
+    <<: *test-template
+    docker:
+      - image: cimg/python:3.12
 
   deploy:
     <<: *test-template

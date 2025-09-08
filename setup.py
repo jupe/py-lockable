@@ -37,13 +37,14 @@ setup(
         "Topic :: Software Development :: Testing",
         "Topic :: Utilities",
         'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         "Programming Language :: Python :: 3 :: Only",
     ],
     packages=find_packages(exclude=['tests']),
     keywords="py.test pytest lockable resource",
-    python_requires='>=3.8, <4',
+    python_requires='>=3.9, <4',
     entry_points={
         'console_scripts': [
             'lockable = lockable.cli:main'
