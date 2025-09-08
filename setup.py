@@ -51,7 +51,7 @@ setup(
     },
     install_requires=[
         'pid',
-        'pydash',
+        'mongo-query-match',
         'requests',
         'httptest'
     ],

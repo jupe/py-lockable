@@ -86,7 +86,11 @@ with lockable.auto_lock(requirements, [timeout_s]) as allocation:
     print(allocation.resource_info)
 ```
 
+Resource requirements are evaluated using
+[mongoquery](https://github.com/reuben/mongoquery/), so MongoDB-style
+operators like `$in` and `$gt` are supported when selecting resources.
+
 **Tips:**
 
-You can allocate also offline devices by set requirements `"online": None` . 
+You can allocate also offline devices by set requirements `"online": None` .
 You can ignore also `hostname` same same way by  setting it to  None`
