@@ -9,7 +9,7 @@ import socket
 import time
 import tempfile
 
-from pydash import filter_, merge
+from mongoquery import Query, QueryError
 from pid import PidFile, PidFileError
 
 from lockable.allocation import Allocation
@@ -103,6 +103,15 @@ class Lockable:
                 raise ValueError(str(error)) from error
         return Lockable.parse_str_requirements(requirements_str)
 
+    @staticmethod
+    def _filter_resources(resources, requirement):
+        """Filter resources using mongoquery."""
+        try:
+            query = Query(requirement)
+        except QueryError as error:
+            raise ValueError(str(error)) from error
+        return list(filter(query.match, resources))
+
     def _try_lock(self, requirements, candidate):
         """ Function that tries to lock given candidate resource """
         resource_id = candidate.get("id")
@@ -181,7 +190,7 @@ class Lockable:
 
     def _lock(self, requirements, timeout_s, retry_interval=1) -> Allocation:
         """ Lock resource """
-        local_resources = filter_(self.resource_list, requirements)
+        local_resources = self._filter_resources(self.resource_list, requirements)
         random.shuffle(local_resources)
         ResourceNotFound.invariant(local_resources,
                                    f"Suitable resource not available, {requirements=}")
@@ -191,7 +200,7 @@ class Lockable:
         """ Lock resource """
         local_resources = []
         for req in requirements:
-            resources = filter_(self.resource_list, req)
+            resources = self._filter_resources(self.resource_list, req)
             ResourceNotFound.invariant(resources,
                                        f"Suitable resource not available, {requirements=}")
             local_resources += resources
@@ -207,7 +216,8 @@ class Lockable:
     def _get_requirements(requirements, hostname):
         """ Generate requirements"""
         MODULE_LOGGER.debug('hostname: %s', hostname)
-        merged = merge({'hostname': hostname, 'online': True}, requirements)
+        merged = {'hostname': hostname, 'online': True}
+        merged.update(requirements)
         allowed_to_del = ["online", "hostname"]
         for key in allowed_to_del:
             # allow to remove online requirement by set it to None

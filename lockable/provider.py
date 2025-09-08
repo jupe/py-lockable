@@ -5,8 +5,8 @@ import logging
 import typing
 from typing import List
 
-from pydash import filter_, count_by
 from lockable.lockable import log_with_group
+from collections import Counter
 
 MODULE_LOGGER = logging.getLogger(__name__)
 
@@ -43,12 +43,12 @@ class Provider(ABC):
     @staticmethod
     def _validate_json(data: List[dict]):
         """ Internal method to validate resources.json content """
-        counts = count_by(data, lambda obj: obj.get('id'))
-        no_ids = filter_(counts.keys(), lambda key: key is None)
+        counts = Counter(obj.get('id') for obj in data)
+        no_ids = [key for key in counts.keys() if key is None]
         if no_ids:
             raise ValueError('Invalid json, id property is missing')
 
-        duplicates = filter_(counts.keys(), lambda key: counts[key] > 1)
+        duplicates = [key for key, value in counts.items() if value > 1]
         if duplicates:
             log_with_group(MODULE_LOGGER, f'Duplicates: {duplicates}')
             raise ValueError(f"Invalid json, duplicate ids in {duplicates}")

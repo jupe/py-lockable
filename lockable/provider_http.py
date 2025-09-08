@@ -10,6 +10,18 @@ from urllib3.exceptions import MaxRetryError
 
 from lockable.provider import Provider, ProviderError
 
+try:
+    from importlib.metadata import version as pkg_version, PackageNotFoundError
+except ImportError:  # pragma: no cover - fallback for older Python
+    from importlib_metadata import version as pkg_version, PackageNotFoundError
+
+try:
+    _MAJOR_VERSION = pkg_version('lockable').split('.')[0]
+except PackageNotFoundError:  # pragma: no cover - package not installed
+    _MAJOR_VERSION = '0'
+
+_USER_AGENT = f'py-lockable/v{_MAJOR_VERSION}'
+
 MODULE_LOGGER = logging.getLogger(__name__)
 
 
@@ -59,6 +71,9 @@ class ProviderHttp(Provider):
         #  create http adapter with retry strategy
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self._http = requests.Session()
+
+        # set default User-Agent header
+        self._http.headers.update({'User-Agent': _USER_AGENT})
 
         url = parse_url(uri)
         self._http.mount(f'{url.scheme}://', adapter)

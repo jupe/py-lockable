@@ -67,6 +67,22 @@ class TestHTTPServerInvalidData(httptest.Handler):
         self.wfile.write(contents)
 
 
+class TestHTTPServerUserAgent(httptest.Handler):
+
+    last_user_agent = None
+
+    def do_GET(self):
+        TestHTTPServerUserAgent.last_user_agent = self.headers.get('User-Agent')
+        contents = "[{\"id\": \"abc\"}]".encode()
+        self.send_response(200)
+        self.send_header("ETag", "1234567890")
+        self.send_header("Last-Modified", "Mon, 01 Jan 1970 00:00:00 GMT")
+        self.send_header("Content-type", "text/json")
+        self.send_header("Content-length", len(contents))
+        self.end_headers()
+        self.wfile.write(contents)
+
+
 class ProviderTests(TestCase):
     def setUp(self) -> None:
         logger = logging.getLogger('lockable')
@@ -131,6 +147,22 @@ class ProviderTests(TestCase):
         self.assertIsInstance(provider, ProviderHttp)
         self.assertEqual(len(provider.data), 1)
         self.assertDictEqual(provider.data[0], {"id": "abc"})
+
+    @httptest.Server(TestHTTPServerUserAgent)
+    def test_provider_http_user_agent(self, ts=httptest.NoServer()):
+        ts.server_name = 'localhost'
+        TestHTTPServerUserAgent.last_user_agent = None
+        create_provider(ts.url())
+        try:
+            from importlib.metadata import version, PackageNotFoundError
+        except ImportError:  # pragma: no cover
+            from importlib_metadata import version, PackageNotFoundError
+        try:
+            major = version('lockable').split('.')[0]
+        except PackageNotFoundError:
+            major = '0'
+        expected = f'py-lockable/v{major}'
+        self.assertEqual(TestHTTPServerUserAgent.last_user_agent, expected)
 
     @httptest.Server(TestHTTPServer404)
     def test_provider_http_not_found(self, ts=httptest.NoServer()):
