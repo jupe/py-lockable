@@ -1,6 +1,6 @@
 # lockable
 
-[![CircleCI](https://circleci.com/gh/jupe/py-lockable/tree/master.svg?style=svg)](https://circleci.com/gh/jupe/py-lockable/tree/master)
+[![CI](https://github.com/jupe/py-lockable/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/jupe/py-lockable/actions/workflows/ci.yml?query=branch%3Amaster)
 [![PyPI version](https://badge.fury.io/py/lockable.svg)](https://pypi.org/project/lockable/)
 [![Coverage Status](https://coveralls.io/repos/github/jupe/pytest-lockable/badge.svg)](https://coveralls.io/github/jupe/py-lockable)
 
