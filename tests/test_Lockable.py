@@ -138,6 +138,15 @@ class LockableTests(TestCase):
         with self.assertRaises(ValueError):
             Lockable.parse_requirements('{\na=b}')
 
+    def test_lock_nested_requirement(self):
+        resources = [
+            {"id": 1, "hostname": "myhost", "online": True, "my": {"field": "value"}}
+        ]
+        with create_lockable(resources) as lockable:
+            allocation = lockable.lock({"my.field": "value"}, timeout_s=0)
+            self.assertEqual(allocation.resource_info["id"], 1)
+            allocation.release(allocation.alloc_id)
+
     def test_lock_resource_not_found(self):
         with create_lockable([]) as lockable:
             with self.assertRaises(ResourceNotFound):
