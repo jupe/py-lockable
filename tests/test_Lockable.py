@@ -8,8 +8,10 @@ import time
 from contextlib import contextmanager
 from tempfile import TemporaryDirectory
 from unittest import TestCase
+from unittest.mock import patch
+from io import StringIO
 
-from lockable.lockable import Lockable, ResourceNotFound, Allocation
+from lockable.lockable import Lockable, ResourceNotFound, Allocation, log_with_group
 
 
 @contextmanager
@@ -280,3 +282,34 @@ class LockableTests(TestCase):
             self.assertTrue(end - start < 2 and end - start > 1)
             self.assertTrue(os.path.exists(os.path.join(tmpdirname, 'a.pid')))
             self.assertFalse(os.path.exists(os.path.join(tmpdirname, 'b.pid')))
+
+    def test_log_with_group(self):
+        logger = logging.getLogger('test_logger')
+        logger.setLevel(logging.INFO)
+        log_output = []
+
+        def mock_info(message):
+            log_output.append(message)
+
+        logger.info = mock_info
+
+        os.environ['CI'] = 'true'
+        os.environ['GITHUB_ACTIONS'] = 'true'
+
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            log_with_group(logger, "Test Group", "Test message")
+            self.assertIn("::group::Test Group", fake_out.getvalue())
+            self.assertIn("::endgroup::", fake_out.getvalue())
+
+        self.assertEqual(log_output, ["Test message"])
+
+        os.environ['CI'] = 'false'
+        os.environ['GITHUB_ACTIONS'] = 'false'
+
+        log_output.clear()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            log_with_group(logger, "Test Group", "Test message")
+            self.assertNotIn("::group::Test Group", fake_out.getvalue())
+            self.assertNotIn("::endgroup::", fake_out.getvalue())
+
+        self.assertEqual(log_output, ["Test message"])

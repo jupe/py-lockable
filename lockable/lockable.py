@@ -30,6 +30,16 @@ class ResourceNotFound(Exception):
             raise ResourceNotFound(message)
 
 
+def log_with_group(logger, title, message):
+    """ Log message with group syntax if running in GitHub Actions """
+    if os.getenv('CI') == 'true' and os.getenv('GITHUB_ACTIONS') == 'true':
+        print(f"::group::{title}")
+        logger.info(message)
+        print("::endgroup::")
+    else:
+        logger.info(message)
+
+
 class Lockable:
     """
     Base class for Lockable. It handle low-level functionality.
